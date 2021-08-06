@@ -1,0 +1,32 @@
+:root{
+    link rel: ./main.py
+}
+
+QPushButton#search{
+    max-height: 27px;
+    max-width: 200px;
+    border-radius: 15px;
+    font: bold 15px;
+    qproperty-iconSize: 30px;
+}
+QComboBox{
+    max-height:30px;
+    max-width: 170px;
+}
+QLineEdit#search{
+    font: 14px;
+    max-height: 30px;
+    min-height: 30px;
+    max-width: 200px;
+    border-radius: 0px;
+}
+QLineEdit#database-header{
+    font: bold 14px;
+    max-height: 25px;
+    min-height: 25px;
+}
+QLineEdit#database{
+    font: bold 14px;
+    max-height: 25px;
+    min-height: 25px;
+}

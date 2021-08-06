@@ -1,0 +1,2 @@
+Quote Number,Quantity,Part Number,Description,Condition,Unit Price,Line Total,Stock,Customer,Sender,Notes,Internal Notes
+11024,1,CQM1-OC222,PLC,New,240,240,In Stock,David Parsons,Kyle Stickney,New Warranty,Don't Send

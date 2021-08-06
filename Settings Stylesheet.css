@@ -1,0 +1,24 @@
+
+QLineEdit{
+    max-height:35px;
+}
+QGroupBox{
+    max-height: 200px;
+}
+QPushButton#submit{
+    font: bold 14px;
+    max-width: 300px;
+    max-height: 35px;
+    border-radius: 10px;
+}
+QPushButton#database-edit{
+    font: bold 14px;
+    max-width: 300px;
+    max-height: 35px;
+    border-radius: 10px;
+}
+
+QComboBox#database-header{
+    min-height:30px;
+    max-height:30px;
+}
