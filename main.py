@@ -400,7 +400,10 @@ class ActiveQuote(QWidget):
             rows = self.checkTableCheckboxes()
             for i in rows:
                 for j in range(self.table.columnCount()):
-                    self.table.removeWidget(self.table.itemAtPosition(i,j).widget())
+                    try:
+                        self.table.removeWidget(self.table.itemAtPosition(i,j).widget())
+                    except:
+                        pass
                 self.table_row_count -= 1
         except Exception as e:
             print(e)
