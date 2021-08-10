@@ -10,40 +10,6 @@ import pickle
 
 from CustomClasses import *
 
-class TabBar(QTabBar):
-    def tabSizeHint(self, index):
-        s = QTabBar.tabSizeHint(self, index)
-        s.transpose()
-        return s
-
-    def paintEvent(self, event):
-        painter = QStylePainter(self)
-        opt = QStyleOptionTab()
-
-        for i in range(self.count()):
-            self.initStyleOption(opt, i)
-            painter.drawControl(QStyle.CE_TabBarTabShape, opt)
-            painter.save()
-
-            s = opt.rect.size()
-            s.transpose()
-            r = QtCore.QRect(QtCore.QPoint(), s)
-            r.moveCenter(opt.rect.center())
-            opt.rect = r
-
-            c = self.tabRect(i).center()
-            painter.translate(c)
-            painter.rotate(90)
-            painter.translate(-c)
-            painter.drawControl(QStyle.CE_TabBarTabLabel, opt);
-            painter.restore()
-
-
-class TabWidget(QTabWidget):
-    def __init__(self, *args, **kwargs):
-        QTabWidget.__init__(self, *args, **kwargs)
-        self.setTabBar(TabBar(self))
-        self.setTabPosition(QTabWidget.West)
 
 def sendMessage(title,message,type = QMessageBox.Warning): #TODO: Not working if not in a Widget class
     msg = QMessageBox()
@@ -351,6 +317,10 @@ class ActiveQuote(QWidget):
                 self.table.addWidget(QCheckBox(), i, 0)
             for j in range(len(table_headers)):
                 cell = QLineEdit()
+                
+                if table_headers[j] == "Part Number": #TODO: Change to whatever field in settings
+                    cell.setValidator(CapsValidator(self))
+                    
                 cell.setCompleter(completer)
                 cell.setAlignment(QtCore.Qt.AlignCenter)
                 cell.setObjectName("table")
