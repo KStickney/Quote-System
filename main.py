@@ -317,22 +317,24 @@ class ActiveQuote(QWidget):
                 self.table.addWidget(QCheckBox(), i, 0)
             for j in range(len(table_headers)):
                 cell = QLineEdit()
-                
-                if table_headers[j] == "Part Number": #TODO: Change to whatever field in settings
-                    cell.setValidator(CapsValidator(self))
-                    
-                cell.setCompleter(completer)
                 cell.setAlignment(QtCore.Qt.AlignCenter)
-                cell.setObjectName("table")
+
                 if i % 2 == 1:
                     cell.setStyleSheet("background: "+Alternating_color+"; color: "+Alternating_font+";")
-                if j == 0:
-                    cell.setFixedWidth(100)
-                if i == 0:
+
+                if i == 0: #Means Header
                     cell.setReadOnly(True)
                     cell.setObjectName("table-header")
                     cell.setText(table_headers[j])
-                if j == (len(table_headers)-1) and not self.add_note_btn.isChecked():
+                else:
+                    if table_headers[j] == "Part Number":
+                        cell.setValidator(Validator())
+                    cell.setCompleter(completer)
+                    cell.setObjectName("table")
+
+                if j == 0:
+                    cell.setFixedWidth(100)
+                if j == (len(table_headers)-1) and not self.add_note_btn.isChecked(): #Notes Column
                     cell.hide()
                 self.table.addWidget(cell, i, j+1)
             self.table_row_count += 1
