@@ -8,47 +8,9 @@ import math
 import pandas as pd
 import pickle
 
+
 from CustomClasses import *
 from database import *
-
-class Validator(QValidator):
-    def validate(self, string, pos):
-        return QValidator.Acceptable, string.upper(), pos
-
-class TabBar(QTabBar):
-    def tabSizeHint(self, index):
-        s = QTabBar.tabSizeHint(self, index)
-        s.transpose()
-        return s
-
-    def paintEvent(self, event):
-        painter = QStylePainter(self)
-        opt = QStyleOptionTab()
-
-        for i in range(self.count()):
-            self.initStyleOption(opt, i)
-            painter.drawControl(QStyle.CE_TabBarTabShape, opt)
-            painter.save()
-
-            s = opt.rect.size()
-            s.transpose()
-            r = QtCore.QRect(QtCore.QPoint(), s)
-            r.moveCenter(opt.rect.center())
-            opt.rect = r
-
-            c = self.tabRect(i).center()
-            painter.translate(c)
-            painter.rotate(90)
-            painter.translate(-c)
-            painter.drawControl(QStyle.CE_TabBarTabLabel, opt);
-            painter.restore()
-
-
-class TabWidget(QTabWidget):
-    def __init__(self, *args, **kwargs):
-        QTabWidget.__init__(self, *args, **kwargs)
-        self.setTabBar(TabBar(self))
-        self.setTabPosition(QTabWidget.West)
 
 def sendMessage(title,message,type = QMessageBox.Warning): #TODO: Not working if not in a Widget class
     msg = QMessageBox()
@@ -114,7 +76,7 @@ class MainWindow(QMainWindow): #TODO: make function for when click into and out 
         logo = QIcon('./images/TRW Supply Logo.jpg')
         self.setWindowIcon(logo)
 
-        self.styleSheet = "./Main Stylesheet.css"
+        self.styleSheet = "./stylesheets/Main Stylesheet.css"
         with open(self.styleSheet, "r") as fh:
             self.setStyleSheet(fh.read())
 
@@ -129,13 +91,28 @@ class MainWindow(QMainWindow): #TODO: make function for when click into and out 
         self.tabs.addTab(ViewQuotes(), "View Quotes")
         self.tabs.addTab(Settings(),"Settings")
 
+        self.tabs.tabBarClicked.connect(self.handleTabbarClicked)
+
         self.setCentralWidget(self.tabs)
+
+    def handleTabbarClicked(self,index):
+        #self.tabs.tabText(index)
+        try:
+            if index == 1: #Active Quote
+                if self.tabs.widget(index).invoice_number.text() == "":
+                    number = getInvoiceNumber()
+                    self.tabs.widget(index).invoice_number.setText(number)
+
+            if index == 0: #Databse
+                pass #TODO: do nothing, or resubmit search (if not clear search bar)
+        except Exception as e:
+            print(e)
 
 class ActiveQuote(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.styleSheet = "./Quote Stylesheet.css"
+        self.styleSheet = "./stylesheets/Quote Stylesheet.css"
         with open(self.styleSheet, "r") as fh:
             self.setStyleSheet(fh.read())
 
@@ -215,7 +192,8 @@ class ActiveQuote(QWidget):
         #SHIPPING
         p = QLabel("Payment Terms:")
         s = QLabel("Shipping Method:")
-        for label in (p,s):
+        sc = QLabel("Shipping Charges:")
+        for label in (p,s,sc):
             label.setAlignment(QtCore.Qt.AlignVCenter|QtCore.Qt.AlignRight)
             label.setObjectName("shipping")
 
@@ -227,6 +205,11 @@ class ActiveQuote(QWidget):
         self.shipping_method.setEditable(False)
         self.shipping_method.addItems(SHIPPING_METHODS)
 
+        self.shipping_charges = QLineEdit()
+
+        for item in (self.payment_terms,self.shipping_method,self.shipping_charges):
+            item.setObjectName("shipping")
+
         lay1 = QHBoxLayout()
         lay1.addWidget(p)
         lay1.addWidget(self.payment_terms)
@@ -235,9 +218,14 @@ class ActiveQuote(QWidget):
         lay2.addWidget(s)
         lay2.addWidget(self.shipping_method)
 
+        lay3 = QHBoxLayout()
+        lay3.addWidget(sc)
+        lay3.addWidget(self.shipping_charges)
+
         shipping_layout = QHBoxLayout()
         shipping_layout.addLayout(lay1)
         shipping_layout.addLayout(lay2)
+        shipping_layout.addLayout(lay3)
 
 
         #Where table grid used to be
@@ -268,7 +256,7 @@ class ActiveQuote(QWidget):
 
         self.table = CustomGridLayout()
         self.table.setSpacing(0)
-        self.table.setAlignment(QtCore.Qt.AlignCenter)
+        #self.table.setAlignment(QtCore.Qt.AlignCenter)
         for i in range(INITIAL_PART_ROWS):
             self.addTableRow(i)
         self.toggleNoteCol()
@@ -318,10 +306,6 @@ class ActiveQuote(QWidget):
             self.submit_layout.addWidget(btn)
             btn.setObjectName("submit")
 
-        t = CustomGridLayout()
-        t.addWidget(QLabel("HI"),0,0)
-        t.insertRow(0)
-
         #MAIN LAYOUT
         self.main_layout = QVBoxLayout() #The main layout for the quote part of the app
         self.main_layout.setSpacing(30)
@@ -331,10 +315,16 @@ class ActiveQuote(QWidget):
         self.main_layout.addLayout(shipping_layout)
         self.main_layout.addLayout(self.additional_info_out_layout)
         self.main_layout.addLayout(self.submit_layout)
-        self.main_layout.addLayout(t)
 
-        self.scroll_area = QScrollArea() #Allows app to scroll
-        self.scroll_area.setLayout(self.main_layout)
+
+        widget = QWidget()
+        widget.setLayout(self.main_layout)
+
+        self.scroll_area = QScrollArea()  # Allows app to scroll
+        self.scroll_area.setWidgetResizable(True)
+        #self.scroll_area.setLayout(self.main_layout)
+        self.scroll_area.setWidget(widget)
+
         self.vlayout = QVBoxLayout()
         self.vlayout.addWidget(self.scroll_area)
         self.setLayout(self.vlayout)
@@ -369,16 +359,16 @@ class ActiveQuote(QWidget):
                 cell = QLineEdit()
                 cell.setAlignment(QtCore.Qt.AlignCenter)
 
-                if i % 2 == 1:
-                    cell.setStyleSheet("background: "+Alternating_color+"; color: "+Alternating_font+";")
-
                 if i == 0: #Means Header
                     cell.setReadOnly(True)
                     cell.setObjectName("table-header")
                     cell.setText(table_headers[j])
                 else:
-                    if table_headers[j] == "Part Number":
-                        cell.setValidator(Validator())
+                    if i % 2 == 1:
+                        cell.setStyleSheet("background: " + Alternating_color + "; color: " + Alternating_font + ";")
+
+                    if table_headers[j] == "Part Number": # TODO: Change to whatever field in settings
+                        cell.setValidator(CapsValidator())
                         cell.setCompleter(getCompleter("Part"))
                     cell.setObjectName("table")
 
@@ -396,7 +386,6 @@ class ActiveQuote(QWidget):
             print(e)
 
     def addTableRow(self,i,remove_btn = False): #TODO: Fix messing up when lots of rows; maybe not use table.count() directly?
-
         try:
             if remove_btn:
                 #for btn in self.table_buttons:
@@ -404,8 +393,9 @@ class ActiveQuote(QWidget):
                 #i = self.table_row_count - 1
                 #self.table_row_count -= 1
 
-                i = self.table.count()-1
-                self.table.deleteRow(i)
+                #i = self.table.count()-1
+                i = self.table_row_count-1
+                self.table.deleteRow(i+1)
                 self.table_row_count -= 1
 
             wid = QCheckBox()
@@ -420,23 +410,28 @@ class ActiveQuote(QWidget):
                 cell = QLineEdit()
                 cell.setAlignment(QtCore.Qt.AlignCenter)
 
-                if i % 2 == 1:
-                    cell.setStyleSheet("background: " + Alternating_color + "; color: " + Alternating_font + ";")
-
                 if i == 0:  # Means Header
                     cell.setReadOnly(True)
                     cell.setObjectName("table-header")
                     cell.setText(table_headers[j])
+
+                    if j == 0:
+                        cell.setFixedWidth(100)
                 else:
+                    if i % 2 == 1:
+                        cell.setStyleSheet("background: " + Alternating_color + "; color: " + Alternating_font + ";")
+
                     if table_headers[j] == "Part Number":
-                        cell.setValidator(Validator())
+                        cell.setValidator(CapsValidator())
                         cell.setCompleter(getCompleter("Part"))
                     cell.setObjectName("table")
 
-                if j == 0:
-                    cell.setFixedWidth(100)
-                if j == (len(table_headers) - 1) and not self.add_note_btn.isChecked():  # Notes Column
-                    cell.hide()
+                    if j == 0: #item number
+                        cell.setFixedWidth(100)
+                        cell.setReadOnly(True)
+                        cell.setText(str(i))
+                    if j == (len(table_headers) - 1) and not self.add_note_btn.isChecked():  # Notes Column
+                        cell.hide()
 
                 self.table.addWidget(cell,i,j+1)
 
@@ -498,6 +493,7 @@ class ActiveQuote(QWidget):
         return rows
 
     def deleteTableItem(self): #TODO: Fix mashup delete
+        #TOOD: When delete, go through and redo alternating cell and item number
         try:
             rows = self.checkTableCheckboxes()
             for i in rows:
@@ -567,7 +563,7 @@ class Settings(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.styleSheet = "./Settings Stylesheet.css"
+        self.styleSheet = "./stylesheets/Settings Stylesheet.css"
         with open(self.styleSheet, "r") as fh:
             self.setStyleSheet(fh.read())
 
@@ -711,7 +707,7 @@ class Database(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.styleSheet = "./Database Stylesheet.css"
+        self.styleSheet = "./stylesheets/Database Stylesheet.css"
         with open(self.styleSheet, "r") as fh:
             self.setStyleSheet(fh.read())
 
@@ -782,7 +778,31 @@ class Database(QWidget):
                 box.setCurrentText(box.itemText(i))
 
     def onSubmitSearch(self):
-        try:
+
+        search_by1 = self.search_dictionary[self.search_by_box.currentText()]
+        search1 = self.search_box.text()
+
+        search_by2 = self.search_dictionary[self.search_by_box2.currentText()]
+        search2 = self.search_box2.text()
+
+        cursor = getQuotes()
+
+        if search1 == "" or search2 == "":
+            if search1 == "":
+                search = search2
+            else:
+                search = search1
+            #SEARCH USING 1
+
+        else:
+            pass
+            #SEARCH USING TWO
+
+        #Delete rows and add back in
+
+
+    def onSubmitSearchOLD(self):
+        try: #either use panda or pyodbc
             df = pd.read_csv(DATABASE_FILE)
             search_by = self.search_dictionary[self.search_by_box.currentText()]
             search_text = self.search_box.text()
@@ -883,6 +903,8 @@ def storeSettings():
     with open(settings_file, 'wb') as handle:
         pickle.dump(new_settings, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
+
+
 def getCompleter(type):
     if type == "Part":
         completer_list = getPartNumbers()
@@ -892,7 +914,6 @@ def getCompleter(type):
     completer.setCompletionMode(QCompleter.PopupCompletion)
 
     return completer
-
 
 
 if __name__ == '__main__':

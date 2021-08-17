@@ -1,11 +1,51 @@
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import Qt
+from PyQt5 import QtCore
+from PyQt5.QtGui import *
 import sys
+
+class CapsValidator(QValidator):
+    def validate(self, string, pos):
+        return QValidator.Acceptable, string.upper(), pos
+
+class TabBar(QTabBar):
+    def tabSizeHint(self, index):
+        s = QTabBar.tabSizeHint(self, index)
+        s.transpose()
+        return s
+
+    def paintEvent(self, event):
+        painter = QStylePainter(self)
+        opt = QStyleOptionTab()
+
+        for i in range(self.count()):
+            self.initStyleOption(opt, i)
+            painter.drawControl(QStyle.CE_TabBarTabShape, opt)
+            painter.save()
+
+            s = opt.rect.size()
+            s.transpose()
+            r = QtCore.QRect(QtCore.QPoint(), s)
+            r.moveCenter(opt.rect.center())
+            opt.rect = r
+
+            c = self.tabRect(i).center()
+            painter.translate(c)
+            painter.rotate(90)
+            painter.translate(-c)
+            painter.drawControl(QStyle.CE_TabBarTabLabel, opt);
+            painter.restore()
+
+
+class TabWidget(QTabWidget):
+    def __init__(self, *args, **kwargs):
+        QTabWidget.__init__(self, *args, **kwargs)
+        self.setTabBar(TabBar(self))
+        self.setTabPosition(QTabWidget.West)
 
 class CustomGridLayout(QVBoxLayout):
     def __init__(self):
         super(CustomGridLayout, self).__init__()
-        self.setAlignment(Qt.AlignTop)  # !!!
+        self.setAlignment(QtCore.Qt.AlignTop)  # !!!
         self.setSpacing(20)
 
 
@@ -19,7 +59,8 @@ class CustomGridLayout(QVBoxLayout):
         else:
             while row >= horLaysNr:
                 lyt = QHBoxLayout()
-                lyt.setAlignment(Qt.AlignLeft)
+                lyt.setAlignment(QtCore.Qt.AlignLeft)
+                lyt.setSpacing(0)
                 self.addLayout(lyt)
                 horLaysNr = self.count()
             ###
@@ -32,7 +73,7 @@ class CustomGridLayout(QVBoxLayout):
 
     def insertRow(self, row):
         lyt = QHBoxLayout()
-        lyt.setAlignment(Qt.AlignLeft)
+        lyt.setAlignment(QtCore.Qt.AlignLeft)
         self.insertLayout(row, lyt)
 
     ''''''
