@@ -9,7 +9,46 @@ import pandas as pd
 import pickle
 
 from CustomClasses import *
+from database import *
 
+class Validator(QValidator):
+    def validate(self, string, pos):
+        return QValidator.Acceptable, string.upper(), pos
+
+class TabBar(QTabBar):
+    def tabSizeHint(self, index):
+        s = QTabBar.tabSizeHint(self, index)
+        s.transpose()
+        return s
+
+    def paintEvent(self, event):
+        painter = QStylePainter(self)
+        opt = QStyleOptionTab()
+
+        for i in range(self.count()):
+            self.initStyleOption(opt, i)
+            painter.drawControl(QStyle.CE_TabBarTabShape, opt)
+            painter.save()
+
+            s = opt.rect.size()
+            s.transpose()
+            r = QtCore.QRect(QtCore.QPoint(), s)
+            r.moveCenter(opt.rect.center())
+            opt.rect = r
+
+            c = self.tabRect(i).center()
+            painter.translate(c)
+            painter.rotate(90)
+            painter.translate(-c)
+            painter.drawControl(QStyle.CE_TabBarTabLabel, opt);
+            painter.restore()
+
+
+class TabWidget(QTabWidget):
+    def __init__(self, *args, **kwargs):
+        QTabWidget.__init__(self, *args, **kwargs)
+        self.setTabBar(TabBar(self))
+        self.setTabPosition(QTabWidget.West)
 
 def sendMessage(title,message,type = QMessageBox.Warning): #TODO: Not working if not in a Widget class
     msg = QMessageBox()
@@ -205,27 +244,38 @@ class ActiveQuote(QWidget):
         #ITEM TABLE
         self.add_table_item_btn = QPushButton("Add Item")
         self.add_table_item_btn.setObjectName("add-item")
-        self.add_table_item_btn.clicked.connect(lambda: self.add_table_item(None,True))
+        #self.add_table_item_btn.clicked.connect(lambda: self.add_table_item(None,True))
+        self.add_table_item_btn.clicked.connect(lambda: self.addTableRow(i=None, remove_btn=True))
 
         self.del_table_item_btn = QPushButton("Delete Item")
         self.del_table_item_btn.setObjectName("add-item")
-        self.del_table_item_btn.clicked.connect(lambda: self.deleteTableItem())
+        #self.del_table_item_btn.clicked.connect(lambda: self.deleteTableItem())
+        self.del_table_item_btn.clicked.connect(lambda: self.deleteTableRow())
 
         self.add_note_btn = QCheckBox("Add Note")
         self.add_note_btn.setObjectName("add-item")
-        self.add_note_btn.toggled.connect(lambda: self.addNoteCol())
+        #self.add_note_btn.toggled.connect(lambda: self.addNoteCol())
+        self.add_note_btn.toggled.connect(lambda: self.toggleNoteCol())
         self.add_note_btn.setChecked(False)
 
-        self.table = QGridLayout()
+        #PART NUMBER TABLE
+        #self.table = QGridLayout()
+        #self.table.setSpacing(0)
+        #self.table.setAlignment(QtCore.Qt.AlignCenter)
+        #for i in range(INITIAL_PART_ROWS):
+            #self.add_table_item(i)
+       # self.addNoteCol()
+
+        self.table = CustomGridLayout()
         self.table.setSpacing(0)
         self.table.setAlignment(QtCore.Qt.AlignCenter)
         for i in range(INITIAL_PART_ROWS):
-            self.add_table_item(i)
-        self.addNoteCol()
+            self.addTableRow(i)
+        self.toggleNoteCol()
 
         self.table_buttons = [self.add_table_item_btn,self.del_table_item_btn,self.add_note_btn]
         i = INITIAL_PART_ROWS + 1
-        self.addTableButtons(i)
+        self.addTableButtons2(i)
 
 
         self.note_group = QGroupBox("Notes") #Group Box for the quote notes
@@ -329,7 +379,7 @@ class ActiveQuote(QWidget):
                 else:
                     if table_headers[j] == "Part Number":
                         cell.setValidator(Validator())
-                    cell.setCompleter(completer)
+                        cell.setCompleter(getCompleter("Part"))
                     cell.setObjectName("table")
 
                 if j == 0:
@@ -345,6 +395,61 @@ class ActiveQuote(QWidget):
         except Exception as e:
             print(e)
 
+    def addTableRow(self,i,remove_btn = False): #TODO: Fix messing up when lots of rows; maybe not use table.count() directly?
+
+        try:
+            if remove_btn:
+                #for btn in self.table_buttons:
+                    #self.table.removeWidget(btn)
+                #i = self.table_row_count - 1
+                #self.table_row_count -= 1
+
+                i = self.table.count()-1
+                self.table.deleteRow(i)
+                self.table_row_count -= 1
+
+            wid = QCheckBox()
+            if i == 0:
+                sp_retain = wid.sizePolicy()
+                sp_retain.setRetainSizeWhenHidden(True)
+                wid.setSizePolicy(sp_retain)
+                wid.hide()
+            self.table.addWidget(wid, i, 0)
+
+            for j in range(len(table_headers)):
+                cell = QLineEdit()
+                cell.setAlignment(QtCore.Qt.AlignCenter)
+
+                if i % 2 == 1:
+                    cell.setStyleSheet("background: " + Alternating_color + "; color: " + Alternating_font + ";")
+
+                if i == 0:  # Means Header
+                    cell.setReadOnly(True)
+                    cell.setObjectName("table-header")
+                    cell.setText(table_headers[j])
+                else:
+                    if table_headers[j] == "Part Number":
+                        cell.setValidator(Validator())
+                        cell.setCompleter(getCompleter("Part"))
+                    cell.setObjectName("table")
+
+                if j == 0:
+                    cell.setFixedWidth(100)
+                if j == (len(table_headers) - 1) and not self.add_note_btn.isChecked():  # Notes Column
+                    cell.hide()
+
+                self.table.addWidget(cell,i,j+1)
+
+            self.table_row_count += 1
+
+            if remove_btn:
+                i = self.table_row_count + 1
+                self.addTableButtons2(i)
+
+        except Exception as e:
+            print(e)
+
+
     def addTableButtons(self,i):
         for j in range(len(self.table_buttons)):
             v = QHBoxLayout()
@@ -353,6 +458,18 @@ class ActiveQuote(QWidget):
             #self.table.addWidget(self.table_buttons[j],i,j+1)
             self.table.addItem(v,i,j+1)
         self.table_row_count+=1
+
+    def addTableButtons2(self,i):
+        wid = QCheckBox()
+        sp_retain = wid.sizePolicy()
+        sp_retain.setRetainSizeWhenHidden(True)
+        wid.setSizePolicy(sp_retain)
+        wid.hide()
+        self.table.addWidget(wid,i,0)
+        for j in range(len(self.table_buttons)):
+            self.table.addWidget(self.table_buttons[j],i,j+1)
+        self.table.itemAt(i).layout().setSpacing(15)
+        self.table_row_count += 1
 
     def checkTableCheckboxes(self):
         try:
@@ -367,19 +484,47 @@ class ActiveQuote(QWidget):
             pass
         return rows
 
+    def checkTableCheckboxes2(self):
+        try:
+            rows = []
+            for row in range(self.table.count()-1):
+                try:
+                    if self.table.itemAt(row).layout().itemAt(0).widget().isChecked():
+                        rows.append(row)
+                except Exception as e:
+                    pass
+        except Exception as e:
+            pass
+        return rows
+
     def deleteTableItem(self): #TODO: Fix mashup delete
         try:
             rows = self.checkTableCheckboxes()
             for i in rows:
                 for j in range(self.table.columnCount()):
-                    try:
-                        self.table.removeWidget(self.table.itemAtPosition(i,j).widget())
-                    except:
-                        pass
+                    self.table.removeWidget(self.table.itemAtPosition(i,j).widget())
                 self.table_row_count -= 1
         except Exception as e:
             print(e)
 
+    def deleteTableRow(self):
+        try:
+            rows = self.checkTableCheckboxes2()
+            for i in rows:
+                self.table.deleteRow(i)
+        except Exception as e:
+            print(e)
+
+    def toggleNoteCol(self):
+        try:
+            j = self.table.columnCount() - 1
+
+            if self.add_note_btn.isChecked():
+                self.table.showCol(j)
+            else:
+                self.table.hideCol(j)
+        except Exception as e:
+            pass
 
     def addNoteCol(self): #TODO: Check see if already have note box, change j to always be same column
         try:
@@ -737,6 +882,17 @@ def storeSettings():
     # Store data (serialize)
     with open(settings_file, 'wb') as handle:
         pickle.dump(new_settings, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+def getCompleter(type):
+    if type == "Part":
+        completer_list = getPartNumbers()
+
+    completer = QCompleter(completer_list)
+    completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+    completer.setCompletionMode(QCompleter.PopupCompletion)
+
+    return completer
+
 
 
 if __name__ == '__main__':
