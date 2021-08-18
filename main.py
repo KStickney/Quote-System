@@ -100,7 +100,7 @@ class MainWindow(QMainWindow): #TODO: make function for when click into and out 
         try:
             if index == 1: #Active Quote
                 if self.tabs.widget(index).invoice_number.text() == "":
-                    number = getInvoiceNumber()
+                    number = getNewInvoiceNumber()
                     self.tabs.widget(index).invoice_number.setText(number)
 
             if index == 0: #Databse
@@ -676,7 +676,7 @@ class Settings(QWidget):
         except Exception as e:
             print(e,535)
 
-    def submitHeaders(self): #TODO: Update database tab
+    def submitHeaders(self): #TODO: Update database tab - keep search if search is up?
         #TODO: Possibly select which one want to delete? how select two objects at once
         try:
             global database_headers
@@ -749,18 +749,11 @@ class Database(QWidget):
             wid.setObjectName("search")
         self.search_layer.setAlignment(QtCore.Qt.AlignRight)
 
-        self.table_grid = QGridLayout()
-        self.table_grid.setSpacing(0)
-        for j in range(len(database_headers)): #TODO: Change part column (or any with multiple lines) with QTextEdit
-            wid = QLineEdit(database_headers[j])
-            wid.setReadOnly(True)
-            wid.setAlignment(QtCore.Qt.AlignCenter)
-            wid.setObjectName("database-header")
-            self.table_grid.addWidget(wid,0,j)
+        self.addTable()
 
         #OPENS DATABASE and reads as a pandas dataframe and inserts into grid
-        df = pd.read_csv(DATABASE_FILE)
-        self.insertDatabaseGrid(df, df)
+        #df = pd.read_csv(DATABASE_FILE) #TODO: change to getQuotes() and select how many want to show initially
+        #self.insertDatabaseGrid(df, df)
 
         self.main_layout = QVBoxLayout()
         self.main_layout.addLayout(self.search_layer)
@@ -770,7 +763,7 @@ class Database(QWidget):
     def addComboOptions(self, box):
         self.search_dictionary = {}
         for search in database_headers:
-            self.search_dictionary["Search by " + search.lower()] = search
+            self.search_dictionary["Search by " + search.lower()] = search.replace(" ","_")
             # self.search_by_box.addItem("Search by "+search.lower())
         box.addItems(self.search_dictionary.keys())
         for i in range(box.count()):
@@ -785,20 +778,58 @@ class Database(QWidget):
         search_by2 = self.search_dictionary[self.search_by_box2.currentText()]
         search2 = self.search_box2.text()
 
-        cursor = getQuotes()
+        #captialize if part number
+        if search_by1 == "Part_Number":
+            search1 = search1.upper()
+        if search_by2 == "Part_Number":
+            search2 = search1.upper()
 
+        #DELETE GRID AND CREATE NEW ONE - JUST TO PREVENT MISHMASH IF CONSTANTLY DELETING WIDGETS
+        self.main_layout.removeItem(self.table_grid)
+        self.addTable()
+        self.main_layout.addLayout(self.table_grid)
+
+        df = getQuotes()
+
+        #SEARCHING USING ONE
         if search1 == "" or search2 == "":
             if search1 == "":
                 search = search2
+                search_by = search_by2
             else:
                 search = search1
-            #SEARCH USING 1
+                search_by = search_by1
+
+            searched_df = df[df[search_by] == search]
 
         else:
-            pass
             #SEARCH USING TWO
+            searched_df = df[(df[search_by1] == search1) & (df[search_by2] == search2)]
 
-        #Delete rows and add back in
+        self.insertDatabaseGrid(searched_df)
+
+        #ADD ROWS INTO TABLE
+
+    def insertDatabaseGrid(self,df):
+        try:
+            for i in range(len(df)): #Rows in df #TODO: What if multiple part numbers? How display, how put into csv, how search
+                for j in range(len(database_headers)): #Col in grid
+                    print(2)
+                    widget = QLineEdit(df[(database_headers[j]).replace(" ","_")][i])
+                    print(1)
+                    widget.setAlignment(QtCore.Qt.AlignCenter)
+                    widget.setObjectName("database")
+                    if i%2 == 0: #Alternate row colors
+                        widget.setStyleSheet("background: " + Alternating_color + "; color: " + Alternating_font + ";")
+                    self.table_grid.addWidget(widget,i+1,j)
+                edit = QToolButton()
+                edit.setIcon(QIcon("./images/edit button.png"))
+                edit.clicked.connect(lambda: self.editQuote())
+                if i%2 == 0:
+                    edit.setStyleSheet("background: " + Alternating_color + "; color: " + Alternating_font + ";")
+                self.table_grid.addWidget(edit,i+1,j+1)
+        except Exception as e:
+            print(e,405)
 
 
     def onSubmitSearchOLD(self):
@@ -820,13 +851,13 @@ class Database(QWidget):
             except: #Means no extra rows
                 pass
 
-            self.insertDatabaseGrid(search_result_index,df)
+            self.insertDatabaseGridOLD(search_result_index,df)
 
         except Exception as e:
             print(e)
 
 
-    def insertDatabaseGrid(self,search_item,df):
+    def insertDatabaseGridOLD(self,search_item,df):
         for i in range(len(search_item)): #Rows in df #TODO: What if multiple part numbers? How display, how put into csv, how search
             for j in range(len(database_headers)): #Col in grid
                 widget = QLineEdit(str(df[database_headers[j]][i]))
@@ -841,6 +872,17 @@ class Database(QWidget):
             if i%2 == 0:
                 edit.setStyleSheet("background: " + Alternating_color + "; color: " + Alternating_font + ";")
             self.table_grid.addWidget(edit,i+1,j+1)
+
+    def addTable(self):
+        self.table_grid = QGridLayout()
+        self.table_grid.setSpacing(0)
+
+        for j in range(len(database_headers)): #TODO: Change part column (or any with multiple lines) with QTextEdit
+            wid = QLineEdit(database_headers[j])
+            wid.setReadOnly(True)
+            wid.setAlignment(QtCore.Qt.AlignCenter)
+            wid.setObjectName("database-header")
+            self.table_grid.addWidget(wid,0,j)
 
     def editQuote(self):
         btn = self.sender()

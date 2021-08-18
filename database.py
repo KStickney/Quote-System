@@ -5,20 +5,29 @@ from datetime import date
 database_file = "./data/TRW Quote Database.accdb"
 part_number_table = 'Part_Numbers'
 quote_table = 'Quotes'
+variable_table = 'Variables'
 
-QUOTE_STARTING_NUMBER = '00000'
+QUOTE_STARTING_NUMBER = '12000'
 
-conn = pyodbc.connect(r'Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ='+database_file+';')
-cursor = conn.cursor()
+connection = pyodbc.connect(r'Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ='+database_file+';')
+cursor = connection.cursor()
+
+sql="Insert into Quotes (Quote_Number, Part_Number, Price) values ('8117-00004', 'CQM1-OC222','27')"
+#cursor.execute(sql)
+#connection.commit()
 
 def getQuotes(): #Returns all quotes, mainly used for searching
     try:
 
-        cursor.execute('select * from ' + quote_table)
+        #cursor.execute('select * from ' + quote_table)
 
         #index = cursor.fetchall().index('81721-00001',0,4) what do??
 
-        return cursor
+        #return cursor
+
+        df = pd.read_sql('select * from ' + quote_table, connection)
+
+        return df
 
     except Exception as e:
         print(e)
@@ -32,14 +41,27 @@ def getPartNumbers():
 
     return part_numbers
 
-def getInvoiceNumber():
+def getNewInvoiceNumber():
 
-    cursor.execute('select Quote_Number from ' + quote_table)
+    cursor.execute('select Quote_Number from ' + variable_table)
 
-    last = int(cursor.fetchall()[0][0][6:11])#TODO: change first [] to either 0 or len() depending on if append new quotes to beginning or end
+    last = int(cursor.fetchall()[0][0])
+    new = str(last+1).zfill(5)
 
     today = date.today()
 
-    invoice = str(today.month) + str(today.day) + str(today.strftime('%y')) + "-" + str(last+1).zfill(5)
+    invoice = str(today.month).zfill(2) + str(today.day) + str(today.strftime('%y')) + "-" + new
+
+    #update field with latest quote number
+    updateInvoiceNumber(new)
 
     return invoice
+
+def updateInvoiceNumber(num):
+
+    old = str(int(num)-1).zfill(5)
+
+    cursor.execute(f"UPDATE {variable_table} SET Quote_Number =  '{num}' WHERE Quote_Number = '{old}'")
+
+    connection.commit()
+
