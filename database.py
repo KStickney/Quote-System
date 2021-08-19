@@ -9,10 +9,11 @@ variable_table = 'Variables'
 
 QUOTE_STARTING_NUMBER = '12000'
 
+#TODO: if can't find database, setup new one
 connection = pyodbc.connect(r'Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ='+database_file+';')
 cursor = connection.cursor()
 
-sql="Insert into Quotes (Quote_Number, Part_Number, Price) values ('8117-00004', 'CQM1-OC222','27')"
+#sql="Insert into Quotes (Quote_Number, Part_Number, Price) values ('8117-00004', 'CQM1-OC222','27')"
 #cursor.execute(sql)
 #connection.commit()
 
@@ -31,6 +32,11 @@ def getQuotes(): #Returns all quotes, mainly used for searching
 
     except Exception as e:
         print(e)
+
+def getQuote(id):
+
+    df = pd.read_sql(f"SELECT * from ' + quote_table + ' WHERE Quote_Number = '{id}'")
+    return df
 
 def getPartNumbers():
     part_numbers = []
@@ -64,4 +70,37 @@ def updateInvoiceNumber(num):
     cursor.execute(f"UPDATE {variable_table} SET Quote_Number =  '{num}' WHERE Quote_Number = '{old}'")
 
     connection.commit()
+
+def submitQuoteToDatabase(quote_number,quantities,part_numbers,conditions,unit_prices,line_totals,stock,notes,sender,
+                          customer_name,customer_email,customer_phone,customer_notes,additional_notes,payment_terms,
+                          shipping_method,shipping_charges):
+
+    cursor.execute("select Quote_Number from Quotes where Quote_Number = ?",quote_number) #checking see if already exists
+    data = cursor.fetchall()
+
+    if not data: #None found, so can insert new line
+        sql=f"Insert into Quotes (Quote_Number, Quantity, Part_Number, Condition, Unit_Price, Line_Total, Stock, Notes," \
+            "Sender, Customer_Name, Customer_Email, Customer_Phone, Customer_Notes, Additional_Notes, Payment_Terms," \
+            "Shipping_Method, Shipping_Charges) " \
+            f"values ('{quote_number}', '{quantities}','{part_numbers}','{conditions}','{unit_prices}','{line_totals}'," \
+            f"'{stock}','{notes}','{sender}','{customer_name}','{customer_email}','{customer_phone}','{customer_notes}'," \
+            f"'{additional_notes}','{payment_terms}','{shipping_method}','{shipping_charges}')"
+
+        cursor.execute(sql)
+
+    else: #entry found, update instead (Completely updates - deletes and puts in)
+
+        cursor.execute("UPDATE " + quote_table + " SET Quantity=?,Part_Number=?,Condition=?,Unit_Price=?,Line_Total=?," \
+                        "Stock=?,Notes=?,Sender=?,Customer_Name=?,Customer_Email=?,Customer_Phone=?,Customer_Notes=?," \
+                        "Additional_Notes=?,Payment_Terms=?,Shipping_Method=?,Shipping_Charges=? WHERE Quote_Number=?",
+                       (quantities, part_numbers, conditions, unit_prices, line_totals, stock, notes, sender,
+                        customer_name, customer_email, customer_phone, customer_notes, additional_notes, payment_terms,
+                        shipping_method, shipping_charges, quote_number))
+
+
+    connection.commit()
+    print("Quote Saved")
+
+def closeSQLConnection():
+    connection.close()
 

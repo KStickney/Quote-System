@@ -12,13 +12,6 @@ import pickle
 from CustomClasses import *
 from database import *
 
-def sendMessage(title,message,type = QMessageBox.Warning): #TODO: Not working if not in a Widget class
-    msg = QMessageBox()
-    msg.setWindowTitle(title)
-    msg.setText(message)
-    msg.setIcon(type)
-    msg.setStandardButtons(QMessageBox.Ok)
-    msg.exec_()
 
 #Default Settings
 default_payment_terms = {"Credit Card":"CC","NET 30":"NET 30","NET 60":"NET 60","Wire Transfer":"TT"}
@@ -299,7 +292,10 @@ class ActiveQuote(QWidget):
         self.additional_info_out_layout.addLayout(self.additional_info_layout)
 
         self.save_btn = QPushButton("Save")
+        self.save_btn.clicked.connect(lambda: self.submitQuote())
+
         self.save_and_exit_btn = QPushButton("Save and Close")
+        self.save_and_exit_btn.clicked.connect(lambda: self.saveAndClose())
         self.close_btn = QPushButton("Close")
         self.submit_layout = QHBoxLayout()
         for btn in (self.save_btn,self.save_and_exit_btn,self.close_btn):
@@ -430,7 +426,13 @@ class ActiveQuote(QWidget):
                         cell.setFixedWidth(100)
                         cell.setReadOnly(True)
                         cell.setText(str(i))
-                    if j == (len(table_headers) - 1) and not self.add_note_btn.isChecked():  # Notes Column
+                    if j == 1: #Quantity only accept integers
+                        cell.setValidator(QIntValidator())
+                    if j == 4 or j == 5: # make unit price, line total only accept floats
+                        cell.setValidator(QDoubleValidator())
+                    if j == 1 or j == 4: #make quantity and unity price change line total
+                        cell.textChanged.connect(lambda: self.calculateLineTotal())
+                    if j == (len(table_headers) - 1) and not self.add_note_btn.isChecked():  # Hide Notes Column
                         cell.hide()
 
                 self.table.addWidget(cell,i,j+1)
@@ -440,6 +442,43 @@ class ActiveQuote(QWidget):
             if remove_btn:
                 i = self.table_row_count + 1
                 self.addTableButtons2(i)
+
+        except Exception as e:
+            print(e)
+
+    def calculateLineTotal(self):
+        try:
+            btn = self.sender()
+
+            #iterate through each cell one to find what row it is in
+            try:
+                for row in range(1,self.table.count()-1):
+                    for col in range(self.table.itemAt(row).layout().count()):
+                        if self.table.itemAt(row).layout().itemAt(col).widget() == btn:
+                            index = row
+                            raise Found
+            except Found:
+                pass
+
+            #get quantity
+            quantity = self.table.itemAt(index).layout().itemAt(2).widget().text()
+            if quantity == "":
+                quantity = 0
+            else:
+                quantity = int(quantity)
+
+            #get unit price
+            unit = self.table.itemAt(index).layout().itemAt(5).widget().text()
+            if unit == "":
+                unit = 0
+            else:
+                unit = float(unit)
+                # put unit price back in formatted to two decimal places
+                #self.table.itemAt(index).layout().itemAt(5).widget().setText(str(format(unit, '.2f')))
+                #taken out - won't let keep typing
+
+            #insert line total formated to two decimal places
+            self.table.itemAt(index).layout().itemAt(6).widget().setText(str(format(quantity *unit, '.2f')))
 
         except Exception as e:
             print(e)
@@ -539,6 +578,103 @@ class ActiveQuote(QWidget):
                         self.table.itemAtPosition(i, j).widget().hide()
                     except:
                         pass
+        except Exception as e:
+            print(e)
+
+    def saveAndClose(self):
+        try:
+            self.submitQuote()
+            main_window.tabs.removeTab(1)
+            main_window.tabs.insertTab(1,ActiveQuote(),"Active Quote")
+            main_window.tabs.setCurrentIndex(0)
+        except Exception as e:
+            print(e)
+
+    def submitQuote(self):
+        try: #to convert "None" to Proper None:    x = None if x == 'None' else x
+
+            #for row in range(1, self.table.count() - 1): #Checks to see if missing info #TODO: Want??
+                #for col in range(2, self.table.itemAt(row).count()):
+                    #if self.table.itemAt(row).layout().itemAt(col).widget().text() == "":
+                        #sendMessage("Missing Info",
+                                    #"There are columns with missing information. Would you like to continue?",parent = main_window)
+
+            quote_number = self.invoice_number.text()
+
+            quantities = ""
+            part_numbers = ""
+            conditions = ""
+            unit_prices = ""
+            line_totals = ""
+            stocks = ""
+            notes = ""
+
+            for row in range(1,self.table.count()-1):
+                try:
+                    if self.table.itemAt(row).layout().itemAt(3).widget().text() != "": #if there is a part number, then save row
+                        if self.table.itemAt(row).layout().itemAt(2).widget().text() != "":
+                            quantities += self.table.itemAt(row).layout().itemAt(2).widget().text() + ";"
+                        else:
+                            quantities += "None;"
+
+                        part_numbers += self.table.itemAt(row).layout().itemAt(3).widget().text() + ";"
+
+                        if self.table.itemAt(row).layout().itemAt(4).widget().text() != "":
+                            conditions += self.table.itemAt(row).layout().itemAt(4).widget().text() + ";"
+                        else:
+                            conditions += "None;"
+                        if self.table.itemAt(row).layout().itemAt(5).widget().text() != "":
+                            unit_prices += self.table.itemAt(row).layout().itemAt(5).widget().text() + ";"
+                        else:
+                            unit_prices += "None;"
+                        if self.table.itemAt(row).layout().itemAt(6).widget().text() != "":
+                            line_totals += self.table.itemAt(row).layout().itemAt(6).widget().text() + ";"
+                        else:
+                            line_totals += "None;"
+                        if self.table.itemAt(row).layout().itemAt(7).widget().text() != "":
+                            stocks += self.table.itemAt(row).layout().itemAt(7).widget().text() + ";"
+                        else:
+                            stocks += "None;"
+                        if self.table.itemAt(row).layout().itemAt(8).widget().text() != "":
+                            notes += self.table.itemAt(row).layout().itemAt(8).widget().text() + ";"
+                        else:
+                            notes += "None;"
+                except:
+                    pass
+
+            #delete semicolon at end
+            quantities = quantities[:-1]
+            part_numbers = part_numbers[:-1]
+            conditions = conditions[:-1]
+            unit_prices = unit_prices[:-1]
+            line_totals = line_totals[:-1]
+            stocks = stocks[:-1]
+            notes = notes[:-1]
+
+            sender = self.sent_from.currentText()
+
+            customer_name = self.customer_name.text()
+
+            customer_email = self.customer_email.text()
+
+            customer_phone = self.customer_phone.text()
+
+            customer_notes = self.customer_info.toPlainText() #TODO: Fix inputing new line
+
+            additional_notes = self.additional_infos.toPlainText()
+
+            payment_terms = self.payment_terms.currentText()
+
+            shipping_method = self.shipping_method.currentText()
+
+            shipping_charges = self.shipping_charges.text()
+
+            submitQuoteToDatabase(quote_number=quote_number,quantities=quantities,part_numbers=part_numbers,
+                                  conditions=conditions,unit_prices=unit_prices,line_totals=line_totals,stock=stocks,
+                                  notes=notes,sender=sender,customer_name=customer_name,customer_email=customer_email,
+                                  customer_phone=customer_phone,customer_notes=customer_notes,additional_notes=additional_notes,
+                                  payment_terms=payment_terms,shipping_method=shipping_method,shipping_charges=shipping_charges)
+
         except Exception as e:
             print(e)
 
@@ -715,6 +851,7 @@ class Database(QWidget):
 
     def UIComponents(self):
         self.new_quote_btn = QPushButton("New Quote")
+        self.new_quote_btn.clicked.connect(lambda: self.newQuote())
 
         self.refresh_btn = QPushButton("Refresh")
 
@@ -749,7 +886,9 @@ class Database(QWidget):
             wid.setObjectName("search")
         self.search_layer.setAlignment(QtCore.Qt.AlignRight)
 
-        self.addTable()
+        self.table_grid = QGridLayout()
+        self.table_grid.setSpacing(0)
+        self.addTableHeaders()
 
         #OPENS DATABASE and reads as a pandas dataframe and inserts into grid
         #df = pd.read_csv(DATABASE_FILE) #TODO: change to getQuotes() and select how many want to show initially
@@ -770,8 +909,9 @@ class Database(QWidget):
             if preferred_search.lower() in box.itemText(i).lower():
                 box.setCurrentText(box.itemText(i))
 
-    def onSubmitSearch(self):
+    def onSubmitSearch(self): #TODO: make so can search IN and not just ==
 
+        #Get search texts
         search_by1 = self.search_dictionary[self.search_by_box.currentText()]
         search1 = self.search_box.text()
 
@@ -785,11 +925,16 @@ class Database(QWidget):
             search2 = search1.upper()
 
         #DELETE GRID AND CREATE NEW ONE - JUST TO PREVENT MISHMASH IF CONSTANTLY DELETING WIDGETS
-        self.main_layout.removeItem(self.table_grid)
-        self.addTable()
-        self.main_layout.addLayout(self.table_grid)
+        if self.table_grid is not None:
+            while self.table_grid.count():
+                item = self.table_grid.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+        self.addTableHeaders()
+        #self.main_layout.addLayout(self.table_grid)
 
-        df = getQuotes()
+        df = getQuotes() #gets all quotes
 
         #SEARCHING USING ONE
         if search1 == "" or search2 == "":
@@ -800,34 +945,45 @@ class Database(QWidget):
                 search = search1
                 search_by = search_by1
 
-            searched_df = df[df[search_by] == search]
+            #searched_df = df[df[search_by] == search]
+            searched_df = df[search in df[search_by]]
 
+        # SEARCH USING TWO
         else:
-            #SEARCH USING TWO
-            searched_df = df[(df[search_by1] == search1) & (df[search_by2] == search2)]
+            self.searched_df = df[(df[search_by1] == search1) & (df[search_by2] == search2)]
 
-        self.insertDatabaseGrid(searched_df)
-
-        #ADD ROWS INTO TABLE
+        # ADD ROWS INTO TABLE
+        self.insertDatabaseGrid(self.searched_df)
 
     def insertDatabaseGrid(self,df):
         try:
             for i in range(len(df)): #Rows in df #TODO: What if multiple part numbers? How display, how put into csv, how search
                 for j in range(len(database_headers)): #Col in grid
-                    print(2)
-                    widget = QLineEdit(df[(database_headers[j]).replace(" ","_")][i])
-                    print(1)
+                    widget = QLineEdit(str(df[(database_headers[j]).replace(" ","_")].values[i]))
                     widget.setAlignment(QtCore.Qt.AlignCenter)
                     widget.setObjectName("database")
                     if i%2 == 0: #Alternate row colors
                         widget.setStyleSheet("background: " + Alternating_color + "; color: " + Alternating_font + ";")
                     self.table_grid.addWidget(widget,i+1,j)
+
+                #make edit and delete toolbutton
                 edit = QToolButton()
+                edit.setToolTip("Edit")
                 edit.setIcon(QIcon("./images/edit button.png"))
                 edit.clicked.connect(lambda: self.editQuote())
+
+                delete = QToolButton()
+                delete.setToolTip("Delete")
+                delete.setIcon(QIcon("./images/delete button.png"))
+                delete.clicked.connect(lambda: self.deleteQuote())
+
+                #alternate colors
                 if i%2 == 0:
                     edit.setStyleSheet("background: " + Alternating_color + "; color: " + Alternating_font + ";")
+                    delete.setStyleSheet("background: " + Alternating_color + "; color: " + Alternating_font + ";")
+
                 self.table_grid.addWidget(edit,i+1,j+1)
+                self.table_grid.addWidget(delete, i+1, j+2)
         except Exception as e:
             print(e,405)
 
@@ -873,9 +1029,9 @@ class Database(QWidget):
                 edit.setStyleSheet("background: " + Alternating_color + "; color: " + Alternating_font + ";")
             self.table_grid.addWidget(edit,i+1,j+1)
 
-    def addTable(self):
-        self.table_grid = QGridLayout()
-        self.table_grid.setSpacing(0)
+    def addTableHeaders(self):
+        #self.table_grid = QGridLayout()
+        #self.table_grid.setSpacing(0)
 
         for j in range(len(database_headers)): #TODO: Change part column (or any with multiple lines) with QTextEdit
             wid = QLineEdit(database_headers[j])
@@ -885,8 +1041,72 @@ class Database(QWidget):
             self.table_grid.addWidget(wid,0,j)
 
     def editQuote(self):
+        try:
+            btn = self.sender()
+            index = self.table_grid.indexOf(btn)
+            row=self.table_grid.getItemPosition(index)[0]-1
+
+            main_window.tabs.setCurrentIndex(1) #switc to active quote tab
+
+            quote = main_window.tabs.widget(1)
+            df = self.searched_df
+
+            #INSERT EVERYTHING
+
+            quantities = str(df["Quantity"].values[row]).split(';')
+            part_numbers = str(df["Part_Number"].values[row]).split(';')
+            conditions = str(df["Condition"].values[row]).split(';')
+            unit_prices = str(df["Unit_Price"].values[row]).split(';')
+            line_totals = str(df["Line_Total"].values[row]).split(';')
+            stocks = str(df["Stock"].values[row]).split(';')
+            notes = str(df["Notes"].values[row]).split(';')
+
+            for i in range(len(part_numbers) - INITIAL_PART_ROWS): #adds extra parts if needed
+                quote.addTableRow()
+
+            for i in range(1,quote.table.count()-1): #TODO: make try except for each one? Or since should fill in NONE automatically, should be fine
+                quote.table.itemAt(i).layout().itemAt(2).widget().setText(quantities[i-1])
+                quote.table.itemAt(i).layout().itemAt(3).widget().setText(part_numbers[i - 1])
+                quote.table.itemAt(i).layout().itemAt(4).widget().setText(conditions[i - 1])
+                quote.table.itemAt(i).layout().itemAt(5).widget().setText(unit_prices[i - 1])
+                quote.table.itemAt(i).layout().itemAt(6).widget().setText(line_totals[i - 1])
+                quote.table.itemAt(i).layout().itemAt(7).widget().setText(stocks[i - 1])
+                quote.table.itemAt(i).layout().itemAt(8).widget().setText(notes[i - 1])
+
+
+            quote.invoice_number.setText(str(df["Quote_Number"].values[row]))
+
+            quote.sent_from.setCurrentText(str(df["Sender"].values[row]))
+
+            quote.customer_name.setText(str(df["Customer_Name"].values[row]))
+
+            quote.customer_email.setText(str(df["Customer_Email"].values[row]))
+
+            quote.customer_phone.setText(str(df["Customer_Phone"].values[row]))
+
+            quote.customer_info.setText(str(df["Customer_Notes"].values[row]))
+
+            quote.payment_terms.setCurrentText(str(df["Payment_Terms"].values[row]))
+
+            quote.shipping_method.setCurrentText(str(df["Shipping_Method"].values[row]))
+
+            quote.shipping_charges.setText(str(df["Shipping_Charges"].values[row]))
+
+            quote.additional_infos.setText(str(df["Additional_Notes"].values[row]))
+            #TODO: When add back in, check checkboxes if applicable
+        except Exception as e:
+            print(e)
+
+
+    def deleteQuote(self):
         btn = self.sender()
         index = self.table_grid.indexOf(btn)
+
+    def newQuote(self):
+        main_window.tabs.setCurrentIndex(1)
+        if main_window.tabs.widget(1).invoice_number.text() == "":
+            number = getNewInvoiceNumber()
+            main_window.tabs.widget(1).invoice_number.setText(number)
 
 def refresh():
     global main_window
@@ -957,76 +1177,103 @@ def getCompleter(type):
 
     return completer
 
+def sendMessage(title,message,parent,type = QMessageBox.Warning): #TODO: Not working if not in a Widget class
+    msg = QMessageBox(parent)
+    msg.setWindowTitle(title)
+    msg.setText(message)
+    msg.setIcon(type)
+    msg.setStandardButtons(QMessageBox.Ok)
+    msg.exec_()
+
+class Error(QMainWindow):
+    pass
+
+class Found(Exception):
+    pass
+
+def exit_app():
+    closeSQLConnection()
+
+
 
 if __name__ == '__main__':
-    # Store data (serialize)
-    #with open(settings_file, 'wb') as handle:
-        #pickle.dump(default_settings, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        #print("Default Settings Stored")
+    try:
 
-    # Load data (deserialize)
-    try:
-        with open(settings_file, 'rb') as handle:
-            settings = pickle.load(handle)
+        # Store data (serialize)
+        #with open(settings_file, 'wb') as handle:
+            #pickle.dump(default_settings, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            #print("Default Settings Stored")
+
+        #error = Error()
+
+        # Load data (deserialize)
+        try:
+            with open(settings_file, 'rb') as handle:
+                settings = pickle.load(handle)
+            #print(1/0)
+
+        except Exception as e:
+            sendMessage("Error", "Error loading settings", parent=error, type = QMessageBox.Critical)
+
+        # Load settings into respective variables
+        try:
+            PAYMENT_TERMS = settings["Payment Terms"]
+            SHIPPING_METHODS = settings["Shipping Methods"]
+        except Exception as e:
+            PAYMENT_TERMS = default_payment_terms
+            SHIPPING_METHODS = default_shipping_methods
+        try:
+            table_headers = settings["Table Headers"]
+        except Exception as e:
+            sendMessage("Error", "Cannot load preference. Default Settings Loaded", parent=error, type = QMessageBox.Critical)
+            table_headers = default_table_headers
+        try:
+            INITIAL_PART_ROWS = settings["Initial Part Rows"]
+        except Exception as e:
+            sendMessage("Error", "Cannot load preference. Default Settings Loaded", parent=error, type = QMessageBox.Critical)
+            INITIAL_PART_ROWS = default_initial_part_rows
+        try:
+            database_headers = settings["Database Headers"]
+        except Exception as e:
+            sendMessage("Error", "Cannot load preference. Default Settings Loaded", parent=error, type = QMessageBox.Critical)
+            database_headers = default_database_headers
+        try:
+            sample_notes = settings["Sample Notes"]
+        except Exception as e:
+            sendMessage("Error", "Cannot load preference. Default Settings Loaded", parent=error, type = QMessageBox.Critical)
+            sample_notes = default_sample_notes
+        try:
+            senders = settings["Senders"]
+        except Exception as e:
+            sendMessage("Error", "Cannot load preference. Default Settings Loaded", parent=error, type = QMessageBox.Critical)
+            senders = default_senders
+        try:
+            preferred_search = settings["Preferred Search"]
+        except Exception as e:
+            sendMessage("Error", "Cannot load preference. Default Settings Loaded", parent=error, type = QMessageBox.Critical)
+            preferred_search = default_preferred_search
+        try:
+            THEME = settings["Theme"]
+            Alternating_color = settings["Alternating Color"]
+            Alternating_font = settings["Alternating Font"]
+        except Exception as e:
+            sendMessage("Error", "Cannot load saved theme. Default Settings Loaded", parent=error, type = QMessageBox.Critical)
+            THEME = default_theme
+            Alternating_color = default_alternating_color
+            Alternating_font = default_alternating_font
+
+        # app = QApplication([])
+        app = QApplication(sys.argv)
+        app.aboutToQuit.connect(exit_app)
+        setTheme(THEME)
+        app.setStyle('Fusion')
+        df = pd.read_csv(DATABASE_FILE)
+        DATABASE_HEADERS = list(df.columns)
+        main_window = MainWindow()
+        sys.exit(app.exec_())
 
     except Exception as e:
-        sendMessage("Error", "Error loading settings", QMessageBox.Critical)
-
-    # Load settings into respective variables
-    try:
-        PAYMENT_TERMS = settings["Payment Terms"]
-        SHIPPING_METHODS = settings["Shipping Methods"]
-    except Exception as e:
-        PAYMENT_TERMS = default_payment_terms
-        SHIPPING_METHODS = default_shipping_methods
-    try:
-        table_headers = settings["Table Headers"]
-    except Exception as e:
-        sendMessage("Error", "Cannot load preference. Default Settings Loaded", QMessageBox.Critical)
-        table_headers = default_table_headers
-    try:
-        INITIAL_PART_ROWS = settings["Initial Part Rows"]
-    except Exception as e:
-        sendMessage("Error", "Cannot load preference. Default Settings Loaded", QMessageBox.Critical)
-        INITIAL_PART_ROWS = default_initial_part_rows
-    try:
-        database_headers = settings["Database Headers"]
-    except Exception as e:
-        sendMessage("Error", "Cannot load preference. Default Settings Loaded", QMessageBox.Critical)
-        database_headers = default_database_headers
-    try:
-        sample_notes = settings["Sample Notes"]
-    except Exception as e:
-        sendMessage("Error", "Cannot load preference. Default Settings Loaded", QMessageBox.Critical)
-        sample_notes = default_sample_notes
-    try:
-        senders = settings["Senders"]
-    except Exception as e:
-        sendMessage("Error", "Cannot load preference. Default Settings Loaded", QMessageBox.Critical)
-        senders = default_senders
-    try:
-        preferred_search = settings["Preferred Search"]
-    except Exception as e:
-        sendMessage("Error", "Cannot load preference. Default Settings Loaded", QMessageBox.Critical)
-        preferred_search = default_preferred_search
-    try:
-        THEME = settings["Theme"]
-        Alternating_color = settings["Alternating Color"]
-        Alternating_font = settings["Alternating Font"]
-    except Exception as e:
-        sendMessage("Error", "Cannot load saved theme. Default Settings Loaded", QMessageBox.Critical)
-        THEME = default_theme
-        Alternating_color = default_alternating_color
-        Alternating_font = default_alternating_font
-
-    #app = QApplication([])
-    app = QApplication(sys.argv)
-    setTheme(THEME)
-    app.setStyle('Fusion')
-    df = pd.read_csv(DATABASE_FILE)
-    DATABASE_HEADERS = list(df.columns)
-    main_window = MainWindow()
-    sys.exit(app.exec_())
+        print(e)
 
 
 
