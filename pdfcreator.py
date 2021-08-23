@@ -2,12 +2,12 @@ import pdfkit
 
 #just changed src to href for js files.
 
-path_wkhtmltopdf = r"./bin/wkhtmltopdf.exe"
-config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
+#path_wkhtmltopdf = "./bin/wkhtmltopdf.exe"
+#config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
 
 def getHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,line_totals_list,stocks_list,
                 sender,sender_email,quote_number,customer_email,subject,date,payment_method,delivery_method,
-                subtotal,total,additional_notes_list):
+                additional_notes_list):
     try:
 
         additional_notes = "" #TODO: see how get additional notes and change accordingly
@@ -16,6 +16,11 @@ def getHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,line
                 additional_notes += note
             else:
                 additional_notes += note + "<br>"
+
+        total = 0
+        for dol in line_totals_list:
+            total += dol
+        subtotal = total
 
         parts_table = ""
         for i in range(len(parts_list)):
@@ -242,16 +247,11 @@ def getHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,line
         print(e)
 
 
-def makeQuotePDF(title):
-    #html = getHTMLText()
+def makeQuotePDF(html,title):
     try:
-        pdfkit.from_string(html, title+'.pdf', configuration=config)
+        #pdfkit.from_string(html, title+'.pdf', configuration=config)
+        pdfkit.from_string(html, title + '.pdf')
         pass
     except Exception as e:
         print(e)
-
-html = getHTMLText(["CQM1-OC222","CQM1-AD042"],[1,2],["New","Used"],[1240,1000],[1240,2000],["In Stock","20 Day lead time"],
-                  "Kristopher Stickney","kstickney@trwsupply.com","082221-12051","k@gmail.com","RFQ Parts","08/22/2021",
-                  "Credit Card","UPS",4000,5000,["New - 1 year warranty","No warranty"])
-
 

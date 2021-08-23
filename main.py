@@ -4,6 +4,7 @@ import sys
 from PyQt5 import QtCore
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 import math
 import pandas as pd
 import pickle
@@ -11,6 +12,8 @@ import pickle
 
 from CustomClasses import *
 from database import *
+from pdf.pdfcreator import *
+from ClickableLineEdit import *
 
 
 #Default Settings
@@ -20,7 +23,7 @@ default_table_headers = ["Item","Quantity", "Part Number","Condition","Unit Pric
 default_initial_part_rows = 3 #How many rows show initially in quote
 default_database_headers = ["Quote Number","Customer","Part Number",]
 default_sample_notes = ["New Warranty -- 1 year", "Refurbished Warranty -- 1 year","*****************************"]
-default_senders = {"Kyle Stickney":"kyle@trwelectric.om",
+default_senders = {"Kyle Stickney":"kyle@trwelectric.com",
                    "Tim Stickney": "tim@trwelectric.com",
                    "Nathan": "nathan@trwelectric.com"
                    }
@@ -653,6 +656,8 @@ class ActiveQuote(QWidget):
 
             sender = self.sent_from.currentText()
 
+            sender_email = senders[sender]
+
             customer_name = self.customer_name.text()
 
             customer_email = self.customer_email.text()
@@ -671,7 +676,7 @@ class ActiveQuote(QWidget):
 
             submitQuoteToDatabase(quote_number=quote_number,quantities=quantities,part_numbers=part_numbers,
                                   conditions=conditions,unit_prices=unit_prices,line_totals=line_totals,stock=stocks,
-                                  notes=notes,sender=sender,customer_name=customer_name,customer_email=customer_email,
+                                  notes=notes,sender=sender,sender_email=sender_email,customer_name=customer_name,customer_email=customer_email,
                                   customer_phone=customer_phone,customer_notes=customer_notes,additional_notes=additional_notes,
                                   payment_terms=payment_terms,shipping_method=shipping_method,shipping_charges=shipping_charges)
 
@@ -680,19 +685,32 @@ class ActiveQuote(QWidget):
 
 
 
-class ViewQuotes(QWidget):
+class ViewQuotes(QMainWindow):
     def __init__(self):
         super().__init__()
 
         self.UIComponents()
 
     def UIComponents(self):
-        self.dock_widget = QDockWidget("Active Quotes")
-        self.dock_widget.setWidget(QTabWidget())
 
-        self.main_layout = QVBoxLayout()
-        self.main_layout.addWidget(self.dock_widget)
-        self.setLayout(self.main_layout)
+        self.tabs = QTabWidget()
+        self.tabs.setTabsClosable(True)
+        self.tabs.tabCloseRequested.connect(lambda index: self.tabs.removeTab(index))
+        self.tabs.setStyleSheet("QTabBar::tab{max-height:10px;}")
+
+        self.dock_widget = QDockWidget("Active Quotes")
+        self.dock_widget.setWidget(self.tabs)
+        self.addDockWidget(QtCore.Qt.TopDockWidgetArea,self.dock_widget)
+
+        self.dock_widget.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
+        self.setDockOptions(self.GroupedDragging | self.AllowTabbedDocks | self.AllowNestedDocks)
+        self.setTabPosition(QtCore.Qt.AllDockWidgetAreas, QTabWidget.North)
+        self.tabifyDockWidget(self.dock_widget,self.dock_widget)
+
+    def addTabPage(self,html,quote_number):
+        view = QWebEngineView()
+        view.setHtml(html)
+        self.tabs.addTab(view,quote_number)
 
 
 class Settings(QWidget):
@@ -847,6 +865,8 @@ class Database(QWidget):
         with open(self.styleSheet, "r") as fh:
             self.setStyleSheet(fh.read())
 
+        self.sorted_by = ["Quote_Number","asc"]
+
         self.UIComponents()
 
     def UIComponents(self):
@@ -910,56 +930,68 @@ class Database(QWidget):
                 box.setCurrentText(box.itemText(i))
 
     def onSubmitSearch(self): #TODO: make so can search IN and not just ==
+        try:
 
-        #Get search texts
-        search_by1 = self.search_dictionary[self.search_by_box.currentText()]
-        search1 = self.search_box.text()
+            #Get search texts
+            search_by1 = self.search_dictionary[self.search_by_box.currentText()]
+            search1 = self.search_box.text()
 
-        search_by2 = self.search_dictionary[self.search_by_box2.currentText()]
-        search2 = self.search_box2.text()
+            search_by2 = self.search_dictionary[self.search_by_box2.currentText()]
+            search2 = self.search_box2.text()
 
-        #captialize if part number
-        if search_by1 == "Part_Number":
-            search1 = search1.upper()
-        if search_by2 == "Part_Number":
-            search2 = search1.upper()
+            #captialize if part number
+            if search_by1 == "Part_Number":
+                search1 = search1.upper()
+            if search_by2 == "Part_Number":
+                search2 = search1.upper()
 
-        #DELETE GRID AND CREATE NEW ONE - JUST TO PREVENT MISHMASH IF CONSTANTLY DELETING WIDGETS
-        if self.table_grid is not None:
-            while self.table_grid.count():
-                item = self.table_grid.takeAt(0)
-                widget = item.widget()
-                if widget is not None:
-                    widget.deleteLater()
-        self.addTableHeaders()
-        #self.main_layout.addLayout(self.table_grid)
+            df = getQuotes() #gets all quotes
 
-        df = getQuotes() #gets all quotes
+            #SEARCHING USING ONE
+            if search1 == "" or search2 == "":
+                if search1 == "":
+                    search = search2
+                    search_by = search_by2
+                else:
+                    search = search1
+                    search_by = search_by1
 
-        #SEARCHING USING ONE
-        if search1 == "" or search2 == "":
-            if search1 == "":
-                search = search2
-                search_by = search_by2
+                #searched_df = df[df[search_by] == search]
+                searched_df = df[search in df[search_by]]
+                #self.searched_df = df.loc[:,search in df[search_by]]
+
+            # SEARCH USING TWO
             else:
-                search = search1
-                search_by = search_by1
+                searched_df = df[(df[search_by1] == search1) & (df[search_by2] == search2)]
+                #self.searched_df = df.loc[:,(df[search_by1] == search1) & (df[search_by2] == search2)]
 
-            #searched_df = df[df[search_by] == search]
-            searched_df = df[search in df[search_by]]
+            #Organize initially by descending Quote Number
+            self.searched_df = searched_df.sort_values("Quote_Number",ascending=False)
 
-        # SEARCH USING TWO
-        else:
-            self.searched_df = df[(df[search_by1] == search1) & (df[search_by2] == search2)]
-
-        # ADD ROWS INTO TABLE
-        self.insertDatabaseGrid(self.searched_df)
+            # ADD ROWS INTO TABLE
+            self.insertDatabaseGrid(self.searched_df)
+        except Exception as e:
+            print(e)
 
     def insertDatabaseGrid(self,df):
         try:
+            # DELETE GRID AND CREATE NEW ONE - JUST TO PREVENT MISHMASH IF CONSTANTLY DELETING WIDGETS
+            if self.table_grid is not None:
+                while self.table_grid.count():
+                    item = self.table_grid.takeAt(0)
+                    widget = item.widget()
+                    if widget is not None:
+                        widget.deleteLater()
+            self.addTableHeaders()
+            # self.main_layout.addLayout(self.table_grid)
+
             for i in range(len(df)): #Rows in df #TODO: What if multiple part numbers? How display, how put into csv, how search
                 for j in range(len(database_headers)): #Col in grid
-                    widget = QLineEdit(str(df[(database_headers[j]).replace(" ","_")].values[i]))
+                    if j == 0: #allows quote number to be clicked to view quote
+                        widget = ClickableLineEdit(str(df[(database_headers[j]).replace(" ","_")].values[i]))
+                        widget.clicked.connect(self.viewQuote)
+                    else:
+                        widget = QLineEdit(str(df[(database_headers[j]).replace(" ","_")].values[i]))
                     widget.setAlignment(QtCore.Qt.AlignCenter)
                     widget.setObjectName("database")
                     if i%2 == 0: #Alternate row colors
@@ -1034,11 +1066,31 @@ class Database(QWidget):
         #self.table_grid.setSpacing(0)
 
         for j in range(len(database_headers)): #TODO: Change part column (or any with multiple lines) with QTextEdit
-            wid = QLineEdit(database_headers[j])
+            wid = ClickableLineEdit(database_headers[j])
             wid.setReadOnly(True)
             wid.setAlignment(QtCore.Qt.AlignCenter)
             wid.setObjectName("database-header")
             self.table_grid.addWidget(wid,0,j)
+
+            wid.clicked.connect(self.headerClicked)
+            #wid.mousePressEvent(self.organizeQuotes())
+
+    def headerClicked(self): #Todo: change ascending/descending if clicked again
+        try:
+            btn = self.sender()
+            text = btn.text().replace(" ","_")
+
+            self.insertDatabaseGrid(self.organizeQuote(self.searched_df,text))
+        except Exception as e:
+            print(e)
+
+    def organizeQuote(self,df,col):
+        try:
+            self.searched_df = df.sort_values(col, ascending=False)
+
+            return self.searched_df
+        except Exception as e:
+            print(e)
 
     def editQuote(self):
         try:
@@ -1107,6 +1159,30 @@ class Database(QWidget):
         if main_window.tabs.widget(1).invoice_number.text() == "":
             number = getNewInvoiceNumber()
             main_window.tabs.widget(1).invoice_number.setText(number)
+
+    def viewQuote(self):
+        try:
+            btn = self.sender()
+            quote_number = btn.text()
+
+            #df = self.searched_df.loc[self.searched_df['Quote_Number'] == quote_number]
+            html = getHTMLText(["CQM1-OC222", "CQM1-AD042"], [1, 2], ["New", "Used"], [1240, 1000], [1240, 2000],
+                               ["In Stock", "20 Day lead time"],
+                               "Kristopher Stickney", "kstickney@trwsupply.com", "082221-12051", "k@gmail.com",
+                               "RFQ Parts",
+                               "08/22/2021",
+                               "Credit Card", "UPS", ["New - 1 year warranty", "No warranty"])
+            #html = getHTMLText(str(df["Part_Number"].values[0]).split(';'),str(df["Quantity"].values[0]).split(';'),str(df["Condition"].values[0]).split(';'),
+                               #str(df["Unit_Price"].values[0]).split(';'),str(df["Line_Total"].values[0]).split(';'),
+                               #str(df["Stock"].values[0]).split(';'),str(df["Notes"].values[0]).split(';'),
+                               #str(df["Sender"].values[0].split(';')),str(df["Sender_Email"].values[0]).split(';'),
+                               #str(df["Quote_Number"].values[0]).split(';'),str(df["Customer_Email"].values[0]).split(';'),
+                               #str(df["Subject"].values[0]).split(';'),str(df["_Date"].values[0]).split(';'),str(df["Payment_Terms"].values[0]).split(';'),
+                               #str(df["Shipping_Method"].values[0]).split(';'),str(df["Additional_Notes"]).values[0].split(';'))
+            main_window.tabs.setCurrentIndex(2)
+            main_window.tabs.widget(2).addTabPage(html, quote_number)
+        except Exception as e:
+            print(e)
 
 def refresh():
     global main_window

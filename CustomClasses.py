@@ -2,6 +2,15 @@ from PyQt5.QtWidgets import *
 from PyQt5 import QtCore
 from PyQt5.QtGui import *
 import sys
+from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtWidgets import QLineEdit
+
+
+class ClickableLineEdit(QLineEdit):
+    clicked = pyqtSignal()
+    def mousePressEvent(self, event):
+        self.clicked.emit()
+        QLineEdit.mousePressEvent(self, event)
 
 class CapsValidator(QValidator):
     def validate(self, string, pos):

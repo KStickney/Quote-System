@@ -71,7 +71,7 @@ def updateInvoiceNumber(num):
 
     connection.commit()
 
-def submitQuoteToDatabase(quote_number,quantities,part_numbers,conditions,unit_prices,line_totals,stock,notes,sender,
+def submitQuoteToDatabase(quote_number,quantities,part_numbers,conditions,unit_prices,line_totals,stock,notes,sender,sender_email, #TODO: Have put date in
                           customer_name,customer_email,customer_phone,customer_notes,additional_notes,payment_terms,
                           shipping_method,shipping_charges):
 
@@ -80,10 +80,10 @@ def submitQuoteToDatabase(quote_number,quantities,part_numbers,conditions,unit_p
 
     if not data: #None found, so can insert new line
         sql=f"Insert into Quotes (Quote_Number, Quantity, Part_Number, Condition, Unit_Price, Line_Total, Stock, Notes," \
-            "Sender, Customer_Name, Customer_Email, Customer_Phone, Customer_Notes, Additional_Notes, Payment_Terms," \
+            "Sender,Sender_Email, Customer_Name, Customer_Email, Customer_Phone, Customer_Notes, Additional_Notes, Payment_Terms," \
             "Shipping_Method, Shipping_Charges) " \
             f"values ('{quote_number}', '{quantities}','{part_numbers}','{conditions}','{unit_prices}','{line_totals}'," \
-            f"'{stock}','{notes}','{sender}','{customer_name}','{customer_email}','{customer_phone}','{customer_notes}'," \
+            f"'{stock}','{notes}','{sender}','{sender_email}','{customer_name}','{customer_email}','{customer_phone}','{customer_notes}'," \
             f"'{additional_notes}','{payment_terms}','{shipping_method}','{shipping_charges}')"
 
         cursor.execute(sql)
