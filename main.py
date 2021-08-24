@@ -13,7 +13,8 @@ import pickle
 from CustomClasses import *
 from database import *
 from pdf.pdfcreator import *
-from ClickableLineEdit import *
+
+SAVE_QUOTES_LOCATION = "C:/Users/Patrick/Desktop/"
 
 
 #Default Settings
@@ -21,7 +22,7 @@ default_payment_terms = {"Credit Card":"CC","NET 30":"NET 30","NET 60":"NET 60",
 default_shipping_methods = ["UPS Ground","UPS NDA","UPS 2nd NDA","FedEx Ground","FedEx NDA","DLH"]
 default_table_headers = ["Item","Quantity", "Part Number","Condition","Unit Price","Line Total","Stock","Notes"]
 default_initial_part_rows = 3 #How many rows show initially in quote
-default_database_headers = ["Quote Number","Customer","Part Number",]
+default_database_headers = ["Quote Number","Customer Email","Part Number",]
 default_sample_notes = ["New Warranty -- 1 year", "Refurbished Warranty -- 1 year","*****************************"]
 default_senders = {"Kyle Stickney":"kyle@trwelectric.com",
                    "Tim Stickney": "tim@trwelectric.com",
@@ -101,6 +102,13 @@ class MainWindow(QMainWindow): #TODO: make function for when click into and out 
 
             if index == 0: #Databse
                 pass #TODO: do nothing, or resubmit search (if not clear search bar)
+
+            if index == 2: #View Quotes
+                if not self.tabs.widget(index).dock_widget.isVisible():
+                    self.tabs.widget(index).dock_widget.setVisible(True)
+                    self.tabs.widget(index).dock_widget.setFloating(False)
+                if self.tabs.widget(index).dock_widget.isFloating():
+                    self.tabs.widget(index).dock_widget.setFloating(False)
         except Exception as e:
             print(e)
 
@@ -299,9 +307,14 @@ class ActiveQuote(QWidget):
 
         self.save_and_exit_btn = QPushButton("Save and Close")
         self.save_and_exit_btn.clicked.connect(lambda: self.saveAndClose())
+
         self.close_btn = QPushButton("Close")
+
+        self.save_PDF_btn = QPushButton("Create PDF")
+        self.save_PDF_btn.clicked.connect(self.createPDF)
+
         self.submit_layout = QHBoxLayout()
-        for btn in (self.save_btn,self.save_and_exit_btn,self.close_btn):
+        for btn in (self.save_btn,self.save_and_exit_btn,self.close_btn,self.save_PDF_btn):
             self.submit_layout.addWidget(btn)
             btn.setObjectName("submit")
 
@@ -593,6 +606,29 @@ class ActiveQuote(QWidget):
         except Exception as e:
             print(e)
 
+    def createPDF(self):
+        try:
+            #First save/update quote to database
+            self.submitQuote()
+
+            quote_number = self.invoice_number.text()
+
+            df = getQuote(self.invoice_number.text())
+
+            html = getHTMLText(str(df["Part_Number"].values[0]).split(';'), str(df["Quantity"].values[0]).split(';'),
+                                   str(df["Condition"].values[0]).split(';'),
+                                   str(df["Unit_Price"].values[0]).split(';'), str(df["Line_Total"].values[0]).split(';'),
+                                   str(df["Stock"].values[0]).split(';'),
+                                   str(df["Sender"].values[0]), str(df["Sender_Email"].values[0]),
+                                   str(df["Quote_Number"].values[0]), str(df["Customer_Email"].values[0]),
+                                   str(df["Subject"].values[0]), str(df["_Date"].values[0]),
+                                   str(df["Payment_Terms"].values[0]),
+                                   str(df["Shipping_Method"].values[0]), str(df["Additional_Notes"].values[0]).split("\n"))
+
+            makeQuotePDF(html,SAVE_QUOTES_LOCATION+"INVOICE")
+        except Exception as e:
+            print(e)
+
     def submitQuote(self):
         try: #to convert "None" to Proper None:    x = None if x == 'None' else x
 
@@ -690,8 +726,11 @@ class ViewQuotes(QMainWindow):
         super().__init__()
 
         self.UIComponents()
+        self.showMaximized()
 
     def UIComponents(self):
+        size = self.size()
+        print(size)
 
         self.tabs = QTabWidget()
         self.tabs.setTabsClosable(True)
@@ -711,6 +750,9 @@ class ViewQuotes(QMainWindow):
         view = QWebEngineView()
         view.setHtml(html)
         self.tabs.addTab(view,quote_number)
+
+        index = self.tabs.indexOf(view)
+        self.tabs.setCurrentIndex(index)
 
 
 class Settings(QWidget):
@@ -847,7 +889,7 @@ class Settings(QWidget):
     def addCol(self,header):
         wid = QComboBox()
         wid.addItems(DATABASE_HEADERS)  # TODO: CHANGE TO FULL LIST OF HEADERS IN DATABASE
-        wid.setCurrentText(header)
+        wid.setCurrentText(header.replace(" ","_"))
         wid.setObjectName("database-header")
         self.database_edit_layout.addWidget(wid)
 
@@ -908,6 +950,8 @@ class Database(QWidget):
 
         self.table_grid = QGridLayout()
         self.table_grid.setSpacing(0)
+        self.table_grid.setVerticalSpacing(0)
+        self.table_grid.setSizeConstraint(QLayout.SetMinimumSize)
         self.addTableHeaders()
 
         #OPENS DATABASE and reads as a pandas dataframe and inserts into grid
@@ -917,7 +961,17 @@ class Database(QWidget):
         self.main_layout = QVBoxLayout()
         self.main_layout.addLayout(self.search_layer)
         self.main_layout.addLayout(self.table_grid)
-        self.setLayout(self.main_layout)
+        #self.main_layout.addWidget(self.scroll_area)
+        #self.setLayout(self.main_layout)
+
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        wid = QWidget()
+        wid.setLayout(self.main_layout)
+        self.scroll_area.setWidget(wid)
+        lay = QVBoxLayout()
+        lay.addWidget(self.scroll_area)
+        self.setLayout(lay)
 
     def addComboOptions(self, box):
         self.search_dictionary = {}
@@ -945,10 +999,13 @@ class Database(QWidget):
             if search_by2 == "Part_Number":
                 search2 = search1.upper()
 
-            df = getQuotes() #gets all quotes
+            ##df = getQuotes() #gets all quotes
+
+            if search1 == "" and search2 == "":
+                searched_df = getQuotes()
 
             #SEARCHING USING ONE
-            if search1 == "" or search2 == "":
+            elif search1 == "" or search2 == "":
                 if search1 == "":
                     search = search2
                     search_by = search_by2
@@ -957,13 +1014,15 @@ class Database(QWidget):
                     search_by = search_by1
 
                 #searched_df = df[df[search_by] == search]
-                searched_df = df[search in df[search_by]]
+                ##searched_df = df[search in df[search_by]]
                 #self.searched_df = df.loc[:,search in df[search_by]]
+                searched_df = getQuotes1(search,search_by)
 
             # SEARCH USING TWO
             else:
-                searched_df = df[(df[search_by1] == search1) & (df[search_by2] == search2)]
+                ##searched_df = df[(df[search_by1] == search1) & (df[search_by2] == search2)]
                 #self.searched_df = df.loc[:,(df[search_by1] == search1) & (df[search_by2] == search2)]
+                searched_df = getQuotes2(search1,search2,search_by1,search_by2)
 
             #Organize initially by descending Quote Number
             self.searched_df = searched_df.sort_values("Quote_Number",ascending=False)
@@ -985,17 +1044,32 @@ class Database(QWidget):
             self.addTableHeaders()
             # self.main_layout.addLayout(self.table_grid)
 
+            large_rows = []
+
             for i in range(len(df)): #Rows in df #TODO: What if multiple part numbers? How display, how put into csv, how search
                 for j in range(len(database_headers)): #Col in grid
+                    widget = ClickableLineEdit(str(df[(database_headers[j]).replace(" ", "_")].values[i]).replace(";", ", "))
+                    maxwidth = QFontMetrics(widget.font()).maxWidth()
+                    textlen = len(widget.text())
+                    if textlen > (widget.width()/maxwidth):
+                        widget = QLabel(str(df[(database_headers[j]).replace(" ", "_")].values[i]).replace(";", ", ")) #TODO: Change entire row to that height
+                        #TODO: Add QLabel CSS to every style to be just like QLineEdits
+                        widget.setWordWrap(True)
+                        if i not in large_rows:
+                            large_rows.append(i)
+                        #widget.setSizePolicy(QSizePolicy.Preferred,QSizePolicy.MinimumExpanding)
                     if j == 0: #allows quote number to be clicked to view quote
-                        widget = ClickableLineEdit(str(df[(database_headers[j]).replace(" ","_")].values[i]))
+                        #widget = ClickableLineEdit(str(df[(database_headers[j]).replace(" ","_")].values[i]).replace(";",", "))
                         widget.clicked.connect(self.viewQuote)
+                        widget.setObjectName("database-click")
+                        if i % 2 == 0:  # Alternate row colors
+                            widget.setStyleSheet("QLineEdit{background: " + Alternating_color + "; color: " + Alternating_font + ";}QLineEdit::hover{color:blue;}")
                     else:
-                        widget = QLineEdit(str(df[(database_headers[j]).replace(" ","_")].values[i]))
+                        #widget = QLineEdit(str(df[(database_headers[j]).replace(" ","_")].values[i]).replace(";",", "))
+                        widget.setObjectName("database")
+                        if i % 2 == 0:  # Alternate row colors
+                            widget.setStyleSheet("background: " + Alternating_color + "; color: " + Alternating_font + ";")
                     widget.setAlignment(QtCore.Qt.AlignCenter)
-                    widget.setObjectName("database")
-                    if i%2 == 0: #Alternate row colors
-                        widget.setStyleSheet("background: " + Alternating_color + "; color: " + Alternating_font + ";")
                     self.table_grid.addWidget(widget,i+1,j)
 
                 #make edit and delete toolbutton
@@ -1016,6 +1090,12 @@ class Database(QWidget):
 
                 self.table_grid.addWidget(edit,i+1,j+1)
                 self.table_grid.addWidget(delete, i+1, j+2)
+
+            for i in large_rows:
+                for j in range(len(database_headers)):
+                    if type(self.table_grid.itemAtPosition(i + 1, j).widget()) == QLineEdit or type(self.table_grid.itemAtPosition(i + 1, j).widget()) == ClickableLineEdit:
+                        self.table_grid.itemAtPosition(i + 1, j).widget().setObjectName("special") #Create special category so not confined by height rules in CSS
+                        self.table_grid.itemAtPosition(i + 1, j).widget().setSizePolicy(QSizePolicy.Preferred,QSizePolicy.Preferred)
         except Exception as e:
             print(e,405)
 
@@ -1066,7 +1146,7 @@ class Database(QWidget):
         #self.table_grid.setSpacing(0)
 
         for j in range(len(database_headers)): #TODO: Change part column (or any with multiple lines) with QTextEdit
-            wid = ClickableLineEdit(database_headers[j])
+            wid = ClickableLineEdit(database_headers[j].replace("_"," "))
             wid.setReadOnly(True)
             wid.setAlignment(QtCore.Qt.AlignCenter)
             wid.setObjectName("database-header")
@@ -1098,7 +1178,9 @@ class Database(QWidget):
             index = self.table_grid.indexOf(btn)
             row=self.table_grid.getItemPosition(index)[0]-1
 
-            main_window.tabs.setCurrentIndex(1) #switc to active quote tab
+            main_window.tabs.removeTab(1)
+            main_window.tabs.insertTab(1,ActiveQuote(),"Active Quote") #TODO: add dialog box if quote being edited
+            main_window.tabs.setCurrentIndex(1) #switch to active quote tab
 
             quote = main_window.tabs.widget(1)
             df = self.searched_df
@@ -1113,17 +1195,38 @@ class Database(QWidget):
             stocks = str(df["Stock"].values[row]).split(';')
             notes = str(df["Notes"].values[row]).split(';')
 
-            for i in range(len(part_numbers) - INITIAL_PART_ROWS): #adds extra parts if needed
-                quote.addTableRow()
+            for i in range(len(part_numbers) - (INITIAL_PART_ROWS-1)): #adds extra parts if needed
+                quote.addTableRow(i+INITIAL_PART_ROWS)
 
             for i in range(1,quote.table.count()-1): #TODO: make try except for each one? Or since should fill in NONE automatically, should be fine
-                quote.table.itemAt(i).layout().itemAt(2).widget().setText(quantities[i-1])
-                quote.table.itemAt(i).layout().itemAt(3).widget().setText(part_numbers[i - 1])
-                quote.table.itemAt(i).layout().itemAt(4).widget().setText(conditions[i - 1])
-                quote.table.itemAt(i).layout().itemAt(5).widget().setText(unit_prices[i - 1])
-                quote.table.itemAt(i).layout().itemAt(6).widget().setText(line_totals[i - 1])
-                quote.table.itemAt(i).layout().itemAt(7).widget().setText(stocks[i - 1])
-                quote.table.itemAt(i).layout().itemAt(8).widget().setText(notes[i - 1])
+                try:
+                    quote.table.itemAt(i).layout().itemAt(2).widget().setText(quantities[i-1])
+                except:
+                    pass
+                try:
+                    quote.table.itemAt(i).layout().itemAt(3).widget().setText(part_numbers[i - 1])
+                except:
+                    pass
+                try:
+                    quote.table.itemAt(i).layout().itemAt(4).widget().setText(conditions[i - 1])
+                except:
+                    pass
+                try:
+                    quote.table.itemAt(i).layout().itemAt(5).widget().setText(unit_prices[i - 1])
+                except:
+                    pass
+                try:
+                    quote.table.itemAt(i).layout().itemAt(6).widget().setText(line_totals[i - 1])
+                except:
+                    pass
+                try:
+                    quote.table.itemAt(i).layout().itemAt(7).widget().setText(stocks[i - 1])
+                except:
+                    pass
+                try:
+                    quote.table.itemAt(i).layout().itemAt(8).widget().setText(notes[i - 1])
+                except:
+                    pass
 
 
             quote.invoice_number.setText(str(df["Quote_Number"].values[row]))
@@ -1145,6 +1248,7 @@ class Database(QWidget):
             quote.shipping_charges.setText(str(df["Shipping_Charges"].values[row]))
 
             quote.additional_infos.setText(str(df["Additional_Notes"].values[row]))
+
             #TODO: When add back in, check checkboxes if applicable
         except Exception as e:
             print(e)
@@ -1165,24 +1269,26 @@ class Database(QWidget):
             btn = self.sender()
             quote_number = btn.text()
 
-            #df = self.searched_df.loc[self.searched_df['Quote_Number'] == quote_number]
-            html = getHTMLText(["CQM1-OC222", "CQM1-AD042"], [1, 2], ["New", "Used"], [1240, 1000], [1240, 2000],
-                               ["In Stock", "20 Day lead time"],
-                               "Kristopher Stickney", "kstickney@trwsupply.com", "082221-12051", "k@gmail.com",
-                               "RFQ Parts",
-                               "08/22/2021",
-                               "Credit Card", "UPS", ["New - 1 year warranty", "No warranty"])
-            #html = getHTMLText(str(df["Part_Number"].values[0]).split(';'),str(df["Quantity"].values[0]).split(';'),str(df["Condition"].values[0]).split(';'),
-                               #str(df["Unit_Price"].values[0]).split(';'),str(df["Line_Total"].values[0]).split(';'),
-                               #str(df["Stock"].values[0]).split(';'),str(df["Notes"].values[0]).split(';'),
-                               #str(df["Sender"].values[0].split(';')),str(df["Sender_Email"].values[0]).split(';'),
-                               #str(df["Quote_Number"].values[0]).split(';'),str(df["Customer_Email"].values[0]).split(';'),
-                               #str(df["Subject"].values[0]).split(';'),str(df["_Date"].values[0]).split(';'),str(df["Payment_Terms"].values[0]).split(';'),
-                               #str(df["Shipping_Method"].values[0]).split(';'),str(df["Additional_Notes"]).values[0].split(';'))
+            df = self.searched_df.loc[self.searched_df['Quote_Number'] == quote_number]
+            #html = getHTMLText(["CQM1-OC222", "CQM1-AD042"], [1, 2], ["New", "Used"], [1240, 1000], [1240, 2000],
+                               #["In Stock", "20 Day lead time"],
+                               #"Kristopher Stickney", "kstickney@trwsupply.com", "082221-12051", "k@gmail.com",
+                               #"RFQ Parts",
+                               #"08/22/2021",
+                               #"Credit Card", "UPS", ["New - 1 year warranty", "No warranty"])
+
+            html = getViewHTMLText(str(df["Part_Number"].values[0]).split(';'),str(df["Quantity"].values[0]).split(';'),str(df["Condition"].values[0]).split(';'),
+                               str(df["Unit_Price"].values[0]).split(';'),str(df["Line_Total"].values[0]).split(';'),
+                               str(df["Stock"].values[0]).split(';'),
+                               str(df["Sender"].values[0]),str(df["Sender_Email"].values[0]),
+                               str(df["Quote_Number"].values[0]),str(df["Customer_Email"].values[0]),
+                               str(df["Subject"].values[0]),str(df["_Date"].values[0]),str(df["Payment_Terms"].values[0]),
+                               str(df["Shipping_Method"].values[0]),str(df["Additional_Notes"].values[0]).split("\n"))
             main_window.tabs.setCurrentIndex(2)
             main_window.tabs.widget(2).addTabPage(html, quote_number)
+
         except Exception as e:
-            print(e)
+            print(e,1187)
 
 def refresh():
     global main_window
@@ -1343,7 +1449,7 @@ if __name__ == '__main__':
         app.aboutToQuit.connect(exit_app)
         setTheme(THEME)
         app.setStyle('Fusion')
-        df = pd.read_csv(DATABASE_FILE)
+        df = getQuote("")
         DATABASE_HEADERS = list(df.columns)
         main_window = MainWindow()
         sys.exit(app.exec_())

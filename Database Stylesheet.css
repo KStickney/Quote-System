@@ -30,3 +30,20 @@ QLineEdit#database{
     max-height: 25px;
     min-height: 25px;
 }
+QLineEdit#database-click{
+    font: bold 14px;
+    max-height: 25px;
+    min-height: 25px;
+}
+QLineEdit#database-click::hover{
+    color: blue;
+}
+QLabel#database{
+    font: bold 14px;
+}
+QLineEdit#special{
+    font: bold 14px;
+}
+QLabel#special{
+    font: bold 14px;
+}

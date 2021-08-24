@@ -17,6 +17,26 @@ cursor = connection.cursor()
 #cursor.execute(sql)
 #connection.commit()
 
+
+def getQuotes1(search,search_by):
+    try:
+        search = search.lower()
+        df = pd.read_sql(f"Select * from {quote_table} WHERE LOWER({search_by}) LIKE '%{search}%'",connection)
+
+        return df
+    except Exception as e:
+        print(e)
+
+def getQuotes2(search1,search2,search_by1,search_by2):
+    try:
+        search1 = search1.lower()
+        search2 = search2.lower()
+        df = pd.read_sql("Select * from " + quote_table + f" WHERE {search_by1} LIKE '%{search1}%' AND {search_by2} LIKE '%{search2}%' ",connection)
+
+        return df
+    except Exception as e:
+        print(e)
+
 def getQuotes(): #Returns all quotes, mainly used for searching
     try:
 
@@ -35,7 +55,7 @@ def getQuotes(): #Returns all quotes, mainly used for searching
 
 def getQuote(id):
 
-    df = pd.read_sql(f"SELECT * from ' + quote_table + ' WHERE Quote_Number = '{id}'")
+    df = pd.read_sql(f"SELECT * from {quote_table} WHERE Quote_Number = '{id}'",connection)
     return df
 
 def getPartNumbers():
@@ -78,22 +98,24 @@ def submitQuoteToDatabase(quote_number,quantities,part_numbers,conditions,unit_p
     cursor.execute("select Quote_Number from Quotes where Quote_Number = ?",quote_number) #checking see if already exists
     data = cursor.fetchall()
 
+    Date = date.today().strftime("%m/%d/%Y")
+
     if not data: #None found, so can insert new line
         sql=f"Insert into Quotes (Quote_Number, Quantity, Part_Number, Condition, Unit_Price, Line_Total, Stock, Notes," \
             "Sender,Sender_Email, Customer_Name, Customer_Email, Customer_Phone, Customer_Notes, Additional_Notes, Payment_Terms," \
-            "Shipping_Method, Shipping_Charges) " \
+            "Shipping_Method, Shipping_Charges,_Date) " \
             f"values ('{quote_number}', '{quantities}','{part_numbers}','{conditions}','{unit_prices}','{line_totals}'," \
             f"'{stock}','{notes}','{sender}','{sender_email}','{customer_name}','{customer_email}','{customer_phone}','{customer_notes}'," \
-            f"'{additional_notes}','{payment_terms}','{shipping_method}','{shipping_charges}')"
+            f"'{additional_notes}','{payment_terms}','{shipping_method}','{shipping_charges}','{Date}')"
 
         cursor.execute(sql)
 
     else: #entry found, update instead (Completely updates - deletes and puts in)
 
         cursor.execute("UPDATE " + quote_table + " SET Quantity=?,Part_Number=?,Condition=?,Unit_Price=?,Line_Total=?," \
-                        "Stock=?,Notes=?,Sender=?,Customer_Name=?,Customer_Email=?,Customer_Phone=?,Customer_Notes=?," \
+                        "Stock=?,Notes=?,Sender=?,Sender_Email=?,Customer_Name=?,Customer_Email=?,Customer_Phone=?,Customer_Notes=?," \
                         "Additional_Notes=?,Payment_Terms=?,Shipping_Method=?,Shipping_Charges=? WHERE Quote_Number=?",
-                       (quantities, part_numbers, conditions, unit_prices, line_totals, stock, notes, sender,
+                       (quantities, part_numbers, conditions, unit_prices, line_totals, stock, notes, sender,sender_email,
                         customer_name, customer_email, customer_phone, customer_notes, additional_notes, payment_terms,
                         shipping_method, shipping_charges, quote_number))
 
