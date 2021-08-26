@@ -975,10 +975,12 @@ class Database(QWidget):
 
     def addComboOptions(self, box):
         self.search_dictionary = {}
-        for search in database_headers:
-            self.search_dictionary["Search by " + search.lower()] = search.replace(" ","_")
+        #for search in database_headers: #only specific few
+        for search in DATABASE_HEADERS: #So can choose from all database headers
+            self.search_dictionary["Search by " + search.replace("_"," ")] = search.replace(" ","_") #used to be search.lower for the key
             # self.search_by_box.addItem("Search by "+search.lower())
         box.addItems(self.search_dictionary.keys())
+
         for i in range(box.count()):
             if preferred_search.lower() in box.itemText(i).lower():
                 box.setCurrentText(box.itemText(i))
@@ -1176,8 +1178,25 @@ class Database(QWidget):
         try:
             btn = self.sender()
             index = self.table_grid.indexOf(btn)
-            row=self.table_grid.getItemPosition(index)[0]-1
+            row = self.table_grid.getItemPosition(index)[0] - 1
 
+            if main_window.tabs.widget(1).invoice_number.text() != "":
+                action = self.sendQuoteInUseMsg()
+
+                if action == QMessageBox.Save:
+                    main_window.tabs.widget(1).submitQuote()
+                    self.continueEditQuote(row)
+                if action == QMessageBox.Yes:
+                    self.continueEditQuote(row)
+            else:
+                self.continueEditQuote(row)
+        except Exception as e:
+            print(e)
+
+    #Where the quote is put onto the GUI
+    def continueEditQuote(self,row):
+        try:
+            #Clears anything in activequote tab
             main_window.tabs.removeTab(1)
             main_window.tabs.insertTab(1,ActiveQuote(),"Active Quote") #TODO: add dialog box if quote being edited
             main_window.tabs.setCurrentIndex(1) #switch to active quote tab
@@ -1200,7 +1219,10 @@ class Database(QWidget):
 
             for i in range(1,quote.table.count()-1): #TODO: make try except for each one? Or since should fill in NONE automatically, should be fine
                 try:
-                    quote.table.itemAt(i).layout().itemAt(2).widget().setText(quantities[i-1])
+                    quantity = quantities[i-1]
+                    if quantity == "None":
+                        quantity = '0'
+                    quote.table.itemAt(i).layout().itemAt(2).widget().setText(quantity)
                 except:
                     pass
                 try:
@@ -1212,11 +1234,17 @@ class Database(QWidget):
                 except:
                     pass
                 try:
-                    quote.table.itemAt(i).layout().itemAt(5).widget().setText(unit_prices[i - 1])
+                    unit_price = unit_prices[i - 1]
+                    if unit_price == "None":
+                        unit_price = '0'
+                    quote.table.itemAt(i).layout().itemAt(5).widget().setText(unit_price)
                 except:
                     pass
                 try:
-                    quote.table.itemAt(i).layout().itemAt(6).widget().setText(line_totals[i - 1])
+                    line_total = line_totals[i - 1]
+                    if line_total == "None":
+                        line_total = '0'
+                    quote.table.itemAt(i).layout().itemAt(6).widget().setText(line_total)
                 except:
                     pass
                 try:
@@ -1259,10 +1287,25 @@ class Database(QWidget):
         index = self.table_grid.indexOf(btn)
 
     def newQuote(self):
+        if main_window.tabs.widget(1).invoice_number.text() != "":
+            action = self.sendQuoteInUseMsg()
+
+            if action == QMessageBox.Save:
+                main_window.tabs.widget(1).submitQuote()
+                self.continueNewQuote()
+            if action == QMessageBox.Yes:
+                self.continueNewQuote()
+        else:
+            self.continueNewQuote()
+
+    def continueNewQuote(self):
+        #Clears activequote tab and inserts new
+        main_window.tabs.removeTab(1)
+        main_window.tabs.insertTab(1, ActiveQuote(), "Active Quote")  # TODO: add dialog box if quote being edited
+        main_window.tabs.setCurrentIndex(1)  # switch to active quote tab
+
         main_window.tabs.setCurrentIndex(1)
-        if main_window.tabs.widget(1).invoice_number.text() == "":
-            number = getNewInvoiceNumber()
-            main_window.tabs.widget(1).invoice_number.setText(number)
+        main_window.tabs.widget(1).invoice_number.setText(getNewInvoiceNumber())
 
     def viewQuote(self):
         try:
@@ -1289,6 +1332,18 @@ class Database(QWidget):
 
         except Exception as e:
             print(e,1187)
+
+    def sendQuoteInUseMsg(self):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Warning)
+        msg.setWindowTitle("Quote Already Started")
+        msg.setText("There is a quote already started. Do you want to override?")
+        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Save)
+        # msg.buttonClicked.connect(self.continueEdit)
+
+        action = msg.exec()
+
+        return action
 
 def refresh():
     global main_window
@@ -1359,12 +1414,12 @@ def getCompleter(type):
 
     return completer
 
-def sendMessage(title,message,parent,type = QMessageBox.Warning): #TODO: Not working if not in a Widget class
+def sendMessage(title,message,parent,type = QMessageBox.Warning,btns = QMessageBox.Ok): #TODO: Not working if not in a Widget class
     msg = QMessageBox(parent)
     msg.setWindowTitle(title)
     msg.setText(message)
     msg.setIcon(type)
-    msg.setStandardButtons(QMessageBox.Ok)
+    msg.setStandardButtons(btns)
     msg.exec_()
 
 class Error(QMainWindow):
