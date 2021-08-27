@@ -21,7 +21,7 @@ cursor = connection.cursor()
 def getQuotes1(search,search_by):
     try:
         search = search.lower()
-        df = pd.read_sql(f"Select * from {quote_table} WHERE LOWER({search_by}) LIKE '%{search}%'",connection)
+        df = pd.read_sql(f"Select * from {quote_table} WHERE {search_by} LIKE '%{search}%'",connection)
 
         return df
     except Exception as e:
@@ -122,6 +122,12 @@ def submitQuoteToDatabase(quote_number,quantities,part_numbers,conditions,unit_p
 
     connection.commit()
     print("Quote Saved")
+
+def deleteQuote(id):
+    print(id)
+    cursor.execute(f"DELETE FROM {quote_table} WHERE Quote_Number = '{id}'")
+    cursor.commit()
+    print("Quote Deleted")
 
 def closeSQLConnection():
     connection.close()

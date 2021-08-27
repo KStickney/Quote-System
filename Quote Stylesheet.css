@@ -4,6 +4,12 @@ QLineEdit#table{
     min-height: 30px;
     border-radius: 0px;
 }
+QComboBox#table{
+    font: 14px;
+    max-height: 30px;
+    min-height: 30px;
+    border-radius: 0px;
+}
 QLineEdit#table-header{
     font: bold 16px;
     max-height: 30px;
@@ -25,6 +31,13 @@ QLineEdit#invoice{
     max-height: 40px;
     min-width: 450px;
     max-width: 450px;
+}
+QLineEdit#shipping{
+    font: 14px;
+    min-height: 35px;
+    max-height: 35px;
+    min-width: 200px;
+    max-width: 200px;
 }
 
 QLabel#invoice{
@@ -59,6 +72,7 @@ QComboBox{
 
 QPushButton#submit{
     max-height: 30px;
+    min-height: 30px;
     max-width: 200px;
     border-radius: 15px;
     font: bold 15px;

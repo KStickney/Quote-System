@@ -281,7 +281,7 @@ class ActiveQuote(QWidget):
         j=0
         for k in range(len(sample_notes)): #Populates the grid layout
             box = QCheckBox(sample_notes[k],self.note_group)
-            box.stateChanged.connect(lambda:self.note_checkbox_state())
+            box.clicked.connect(lambda:self.note_checkbox_state())
             if i >= NOTE_ROWS:
                 j+=1
                 i = 0
@@ -427,29 +427,43 @@ class ActiveQuote(QWidget):
                     cell.setObjectName("table-header")
                     cell.setText(table_headers[j])
 
-                    if j == 0:
+                    if j == 0: #means "ITEM" Header
+                        cell.setFixedWidth(80)
+                    if j == 1: #QUANTITY
                         cell.setFixedWidth(100)
                 else:
-                    if i % 2 == 1:
-                        cell.setStyleSheet("background: " + Alternating_color + "; color: " + Alternating_font + ";")
 
                     if table_headers[j] == "Part Number":
                         cell.setValidator(CapsValidator())
                         cell.setCompleter(getCompleter("Part"))
-                    cell.setObjectName("table")
 
-                    if j == 0: #item number
-                        cell.setFixedWidth(100)
+                    if j == 0: #ITEM number
+                        cell.setFixedWidth(80)
                         cell.setReadOnly(True)
                         cell.setText(str(i))
                     if j == 1: #Quantity only accept integers
                         cell.setValidator(QIntValidator())
+                        cell.setFixedWidth(100)
+                    if table_headers[j] == "Condition": #CONDITIONS #todo: make width same: maybe switch back to gridlayout??
+                        cell = QComboBox()
+                        cell.setEditable(True)
+                        default_conditions = ["New","Used","Refurbished"]
+                        cell.addItems(default_conditions)
                     if j == 4 or j == 5: # make unit price, line total only accept floats
                         cell.setValidator(QDoubleValidator())
                     if j == 1 or j == 4: #make quantity and unity price change line total
                         cell.textChanged.connect(lambda: self.calculateLineTotal())
+                    if table_headers[j] == "Stock": #STOCK
+                        cell = QComboBox()
+                        cell.setEditable(True)
+                        default_stock = ["New In Stock","1-3 Week Lead Time"]
+                        cell.addItems(default_stock)
                     if j == (len(table_headers) - 1) and not self.add_note_btn.isChecked():  # Hide Notes Column
                         cell.hide()
+
+                    if i % 2 == 1:
+                        cell.setStyleSheet("background: " + Alternating_color + "; color: " + Alternating_font + ";")
+                    cell.setObjectName("table")
 
                 self.table.addWidget(cell,i,j+1)
 
@@ -907,7 +921,7 @@ class Database(QWidget):
         with open(self.styleSheet, "r") as fh:
             self.setStyleSheet(fh.read())
 
-        self.sorted_by = ["Quote_Number","asc"]
+        self.sorted_by = ["",""]
 
         self.UIComponents()
 
@@ -1028,6 +1042,8 @@ class Database(QWidget):
 
             #Organize initially by descending Quote Number
             self.searched_df = searched_df.sort_values("Quote_Number",ascending=False)
+            self.sorted_by[0] = "Quote_Number"
+            self.sorted_by[1] = False
 
             # ADD ROWS INTO TABLE
             self.insertDatabaseGrid(self.searched_df)
@@ -1157,7 +1173,7 @@ class Database(QWidget):
             wid.clicked.connect(self.headerClicked)
             #wid.mousePressEvent(self.organizeQuotes())
 
-    def headerClicked(self): #Todo: change ascending/descending if clicked again
+    def headerClicked(self):
         try:
             btn = self.sender()
             text = btn.text().replace(" ","_")
@@ -1168,25 +1184,35 @@ class Database(QWidget):
 
     def organizeQuote(self,df,col):
         try:
-            self.searched_df = df.sort_values(col, ascending=False)
+            asc = False #Auto sort descending
+
+            if col == self.sorted_by[0]:
+                asc = not self.sorted_by[1]
+            else:
+                self.sorted_by[0] = col
+            self.sorted_by[1] = asc
+
+            self.searched_df = df.sort_values(col, ascending=asc)
 
             return self.searched_df
         except Exception as e:
             print(e)
 
-    def editQuote(self):
+    def editQuote(self):#TODO: Grab quote from databse when clicked so have most uptodate info
         try:
             btn = self.sender()
             index = self.table_grid.indexOf(btn)
             row = self.table_grid.getItemPosition(index)[0] - 1
 
-            if main_window.tabs.widget(1).invoice_number.text() != "":
+            if main_window.tabs.widget(1).invoice_number.text() == str(self.searched_df["Quote_Number"].values[row]):
+                main_window.tabs.setCurrentIndex(1)  # switch to active quote tab
+            elif main_window.tabs.widget(1).invoice_number.text() != "":
                 action = self.sendQuoteInUseMsg()
 
-                if action == QMessageBox.Save:
+                if action == QMessageBox.Yes:
                     main_window.tabs.widget(1).submitQuote()
                     self.continueEditQuote(row)
-                if action == QMessageBox.Yes:
+                if action == QMessageBox.No:
                     self.continueEditQuote(row)
             else:
                 self.continueEditQuote(row)
@@ -1275,25 +1301,44 @@ class Database(QWidget):
 
             quote.shipping_charges.setText(str(df["Shipping_Charges"].values[row]))
 
-            quote.additional_infos.setText(str(df["Additional_Notes"].values[row]))
+            additional_notes = str(df["Additional_Notes"].values[row])
+            quote.additional_infos.setText(additional_notes)
+            for i in range(main_window.tabs.widget(1).note_group_grid.count()):
+                widget = main_window.tabs.widget(1).note_group_grid.itemAt(i).widget()
+                if widget.text() in additional_notes:
+                    widget.setChecked(True)
 
             #TODO: When add back in, check checkboxes if applicable
         except Exception as e:
             print(e)
 
 
-    def deleteQuote(self):
+    def deleteQuote(self): #TODO: Delete from df and refresh so not show
         btn = self.sender()
         index = self.table_grid.indexOf(btn)
+        row = self.table_grid.getItemPosition(index)[0] - 1
+
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setWindowTitle("Delete Quote")
+        msg.setText("Are you sure you want to delete the quote? This action is not undoable.")
+        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+
+        action = msg.exec()
+
+        if action == QMessageBox.Yes:
+            deleteQuote(str(self.searched_df["Quote_Number"].values[row]))
+
+
 
     def newQuote(self):
         if main_window.tabs.widget(1).invoice_number.text() != "":
             action = self.sendQuoteInUseMsg()
 
-            if action == QMessageBox.Save:
+            if action == QMessageBox.Yes:
                 main_window.tabs.widget(1).submitQuote()
                 self.continueNewQuote()
-            if action == QMessageBox.Yes:
+            if action == QMessageBox.No:
                 self.continueNewQuote()
         else:
             self.continueNewQuote()
@@ -1337,8 +1382,8 @@ class Database(QWidget):
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Warning)
         msg.setWindowTitle("Quote Already Started")
-        msg.setText("There is a quote already started. Do you want to override?")
-        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Save)
+        msg.setText("There is a quote already started. Do you wish to save?")
+        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
         # msg.buttonClicked.connect(self.continueEdit)
 
         action = msg.exec()

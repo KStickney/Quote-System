@@ -19,8 +19,9 @@ def getHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,line
 
         total = 0
         for dol in line_totals_list:
-            if dol != "None":
+            if dol != "None" and dol != '':
                 total += float(dol)
+        total = "{:.2f}".format(total)
         subtotal = total
 
         parts_table = ""
@@ -252,7 +253,7 @@ def getViewHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,
                 additional_notes_list):
     try:
 
-        additional_notes = "" #TODO: see how get additional notes and change accordingly
+        additional_notes = ""
         for note in additional_notes_list:
             if note == additional_notes_list[-1]:
                 additional_notes += note
@@ -261,8 +262,9 @@ def getViewHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,
 
         total = 0
         for dol in line_totals_list:
-            if dol != "None":
+            if dol != "None" and dol != "":
                 total += float(dol)
+        total = "{:.2f}".format(total)
         subtotal = total
 
         parts_table = ""
