@@ -8,16 +8,17 @@ from PyQt5.QtWebEngineWidgets import QWebEngineView
 import math
 import pandas as pd
 import pickle
+import os
 
 
 from CustomClasses import *
 from database import *
 from pdf.pdfcreator import *
 
-SAVE_QUOTES_LOCATION = "C:/Users/Patrick/Desktop/"
-
 
 #Default Settings
+default_SAVE_QUOTES_DIRECTORY = "C:/Users/Patrick/Desktop/"
+default_FIRST_TIME = True
 default_payment_terms = {"Credit Card":"CC","NET 30":"NET 30","NET 60":"NET 60","Wire Transfer":"TT"}
 default_shipping_methods = ["UPS Ground","UPS NDA","UPS 2nd NDA","FedEx Ground","FedEx NDA","DLH"]
 default_table_headers = ["Item","Quantity", "Part Number","Condition","Unit Price","Line Total","Stock","Notes"]
@@ -61,6 +62,8 @@ default_settings = {
     "Theme": default_theme,
     "Alternating Color": default_alternating_color,
     "Alternating Font": default_alternating_font,
+    "First Time": default_FIRST_TIME,
+    "Quote Directory": default_SAVE_QUOTES_DIRECTORY,
 }
 settings_file = "./data/settings.pickle" #For pickle, could put all variables inside dictionary or list or use editorconfig file
 
@@ -136,6 +139,7 @@ class ActiveQuote(QWidget):
 
         self.sent_from = QComboBox()
         self.sent_from.addItems(senders.keys())
+        self.sent_from.setCurrentText(DEFAULT_USER)
 
         lay = QHBoxLayout()
         lay.setSpacing(0)
@@ -639,7 +643,7 @@ class ActiveQuote(QWidget):
                                    str(df["Payment_Terms"].values[0]),
                                    str(df["Shipping_Method"].values[0]), str(df["Additional_Notes"].values[0]).split("\n"))
 
-            makeQuotePDF(html,SAVE_QUOTES_LOCATION+"INVOICE")
+            makeQuotePDF(html,SAVE_QUOTES_DIRECTORY+"INVOICE")
         except Exception as e:
             print(e)
 
@@ -1429,23 +1433,31 @@ def setTheme(text):
         print(e)
 
 def storeSettings():
-    new_settings = {
-        "Payment Terms": PAYMENT_TERMS,
-        "Shipping Methods": SHIPPING_METHODS,
-        "Table Headers": table_headers,
-        "Initial Part Rows": INITIAL_PART_ROWS,
-        "Database Headers": database_headers,
-        "Sample Notes": sample_notes,
-        "Senders": senders,
-        "Preferred Search": preferred_search,
-        "Theme": THEME,
-        "Alternating Color": Alternating_color,
-        "Alternating Font": Alternating_font,
-    }
+    try:
+        new_settings = {
+            "Payment Terms": PAYMENT_TERMS,
+            "Shipping Methods": SHIPPING_METHODS,
+            "Table Headers": table_headers,
+            "Initial Part Rows": INITIAL_PART_ROWS,
+            "Database Headers": database_headers,
+            "Sample Notes": sample_notes,
+            "Senders": senders,
+            "Preferred Search": preferred_search,
+            "Theme": THEME,
+            "Alternating Color": Alternating_color,
+            "Alternating Font": Alternating_font,
+            "First Time": FIRST_TIME,
+            "Quote Directory": SAVE_QUOTES_DIRECTORY,
+            "Default User": DEFAULT_USER,
+        }
 
-    # Store data (serialize)
-    with open(settings_file, 'wb') as handle:
-        pickle.dump(new_settings, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        # Store data (serialize)
+        with open(settings_file, 'wb') as handle:
+            pickle.dump(new_settings, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+        print("Settings Saved")
+    except Exception as e:
+        print("Settings NOT Saved: "+e)
 
 
 
@@ -1476,15 +1488,68 @@ class Found(Exception):
 def exit_app():
     closeSQLConnection()
 
+class FirstDialog(QDialog):
+    def __init__(self):
+        super().__init__()
 
+        self.UIComponents()
+
+    def UIComponents(self):
+        self.setWindowTitle("Initial Setup")
+        self.setWindowModality(QtCore.Qt.ApplicationModal)
+
+        lbl1 = QLabel("Default User:")
+        self.user = QLineEdit()
+
+        lbl2 = QLabel("Directory to store Quote PDFs:")
+        self.directory = QLineEdit()
+
+        browse = QPushButton("Browse")
+        browse.clicked.connect(self.browseFolders)
+
+        location = os.path.join(os.path.expanduser('~'), 'Documents', 'Quotes')
+        self.directory.setText(str(location))
+
+        lay1 = QVBoxLayout()
+        lay1.addWidget(lbl1)
+        lay1.addWidget(self.user)
+        lay1.setAlignment(QtCore.Qt.AlignCenter)
+
+        lay3 = QHBoxLayout()
+        lay3.addWidget(self.directory)
+        lay3.addWidget(browse)
+
+        lay2 = QVBoxLayout()
+        lay2.addWidget(lbl2)
+        lay2.addLayout(lay3)
+        lay2.setAlignment(QtCore.Qt.AlignCenter)
+
+        okay = QPushButton("Okay")
+        okay.clicked.connect(lambda: self.close())
+        lay3 = QHBoxLayout()
+        lay3.addWidget(okay)
+
+        main_lay = QVBoxLayout()
+        main_lay.addLayout(lay1)
+        main_lay.addLayout(lay2)
+        main_lay.addLayout(lay3)
+
+        self.setLayout(main_lay)
+
+    def browseFolders(self):
+        destDir = QFileDialog.getExistingDirectory(None,
+                                                         'Open working directory',
+                                                         os.path.join(os.path.expanduser("~"),"Documents"),
+                                                         QFileDialog.ShowDirsOnly)
+        self.directory.setText(str(destDir))
 
 if __name__ == '__main__':
     try:
 
         # Store data (serialize)
-        #with open(settings_file, 'wb') as handle:
-            #pickle.dump(default_settings, handle, protocol=pickle.HIGHEST_PROTOCOL)
-            #print("Default Settings Stored")
+        with open(settings_file, 'wb') as handle:
+            pickle.dump(default_settings, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            print("Default Settings Stored")
 
         #error = Error()
 
@@ -1543,14 +1608,46 @@ if __name__ == '__main__':
             THEME = default_theme
             Alternating_color = default_alternating_color
             Alternating_font = default_alternating_font
+        try:
+            FIRST_TIME = settings["First Time"]
+        except Exception as e:
+            FIRST_TIME = True
+        try:
+            SAVE_QUOTES_DIRECTORY = settings["Quote Directory"]
+        except Exception as e:
+            #SAVE_QUOTES_DIRECTORY =
+            pass
+
 
         # app = QApplication([])
         app = QApplication(sys.argv)
         app.aboutToQuit.connect(exit_app)
         setTheme(THEME)
         app.setStyle('Fusion')
+
+        #If first time running app, setup initial features
+        if FIRST_TIME:
+            window = FirstDialog()
+            window.exec()
+
+            DEFAULT_USER = window.user.text() #TODO: If default user not in, ask for email and make new one
+            #TODO: Or just on first time, make them put in automatically
+            SAVE_QUOTES_DIRECTORY = f"""{window.directory.text()}"""
+            #FIRST_TIME = False
+
+            #Check save_quotes_directory to see if actual path - if not, create it
+            if not os.path.exists(SAVE_QUOTES_DIRECTORY):
+                os.makedirs(SAVE_QUOTES_DIRECTORY)
+                print("New Directory made: " + SAVE_QUOTES_DIRECTORY)
+
+            storeSettings()
+
+
+        #gets list of headers in database
         df = getQuote("")
         DATABASE_HEADERS = list(df.columns)
+
+        #Actual main interface
         main_window = MainWindow()
         sys.exit(app.exec_())
 
