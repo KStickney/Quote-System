@@ -4,16 +4,30 @@ QLineEdit#table{
     min-height: 30px;
     border-radius: 0px;
 }
+QLineEdit#table-parts{
+    font: 14px;
+    max-height: 30px;
+    min-height: 30px;
+    border-radius: 0px;
+}
 QComboBox#table{
     font: 14px;
     max-height: 30px;
     min-height: 30px;
+    max-width: 200px;
     border-radius: 0px;
 }
 QLineEdit#table-header{
     font: bold 16px;
     max-height: 30px;
     min-height: 30px;
+    border-radius: 0px;
+}
+QLineEdit#header-combo{
+    font: bold 16px;
+    max-height: 30px;
+    min-height: 30px;
+    max-width: 200px;
     border-radius: 0px;
 }
 QLineEdit#customer{
@@ -102,6 +116,10 @@ QLabel{
 
 QCheckBox{
     font: 15px;
+}
+QCheckBox#wire{
+    font: 15px;
+    max-width: 150px;
 }
 
 QComboBox:on {

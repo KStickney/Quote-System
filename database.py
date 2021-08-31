@@ -1,8 +1,20 @@
 import pyodbc
 import pandas as pd
 from datetime import date
+import pickle
 
-database_file = "./data/TRW Quote Database.accdb"
+database_settings_file = "./data/database.pickle"
+
+# Store data (serialize)
+#with open(database_settings_file, 'wb') as handle:
+    #pickle.dump(database_settings, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    #print("Default Settings Stored")
+
+with open(database_settings_file, 'rb') as handle:
+    database_settings = pickle.load(handle)
+
+#database_file = "./data/TRW Quote Database.accdb"
+database_file = database_settings["Database Path"]
 part_number_table = 'Part_Numbers'
 quote_table = 'Quotes'
 variable_table = 'Variables'
@@ -91,22 +103,20 @@ def updateInvoiceNumber(num):
 
     connection.commit()
 
-def submitQuoteToDatabase(quote_number,quantities,part_numbers,conditions,unit_prices,line_totals,stock,notes,sender,sender_email, #TODO: Have put date in
+def submitQuoteToDatabase(quote_number,quantities,part_numbers,conditions,unit_prices,line_totals,stock,notes,sender,sender_email,
                           customer_name,customer_email,customer_phone,customer_notes,additional_notes,payment_terms,
-                          shipping_method,shipping_charges):
-
+                          shipping_method,shipping_charges,pro_forma):
     cursor.execute("select Quote_Number from Quotes where Quote_Number = ?",quote_number) #checking see if already exists
     data = cursor.fetchall()
 
-    Date = date.today().strftime("%m/%d/%Y")
-
     if not data: #None found, so can insert new line
+        Date = date.today().strftime("%m/%d/%Y")
         sql=f"Insert into Quotes (Quote_Number, Quantity, Part_Number, Condition, Unit_Price, Line_Total, Stock, Notes," \
             "Sender,Sender_Email, Customer_Name, Customer_Email, Customer_Phone, Customer_Notes, Additional_Notes, Payment_Terms," \
-            "Shipping_Method, Shipping_Charges,_Date) " \
+            "Shipping_Method, Shipping_Charges,_Date,Pro_Forma) " \
             f"values ('{quote_number}', '{quantities}','{part_numbers}','{conditions}','{unit_prices}','{line_totals}'," \
             f"'{stock}','{notes}','{sender}','{sender_email}','{customer_name}','{customer_email}','{customer_phone}','{customer_notes}'," \
-            f"'{additional_notes}','{payment_terms}','{shipping_method}','{shipping_charges}','{Date}')"
+            f"'{additional_notes}','{payment_terms}','{shipping_method}','{shipping_charges}','{Date}','{pro_forma}')"
 
         cursor.execute(sql)
 
@@ -114,14 +124,22 @@ def submitQuoteToDatabase(quote_number,quantities,part_numbers,conditions,unit_p
 
         cursor.execute("UPDATE " + quote_table + " SET Quantity=?,Part_Number=?,Condition=?,Unit_Price=?,Line_Total=?," \
                         "Stock=?,Notes=?,Sender=?,Sender_Email=?,Customer_Name=?,Customer_Email=?,Customer_Phone=?,Customer_Notes=?," \
-                        "Additional_Notes=?,Payment_Terms=?,Shipping_Method=?,Shipping_Charges=? WHERE Quote_Number=?",
+                        "Additional_Notes=?,Payment_Terms=?,Shipping_Method=?,Shipping_Charges=?,Pro_Forma=? WHERE Quote_Number=?",
                        (quantities, part_numbers, conditions, unit_prices, line_totals, stock, notes, sender,sender_email,
                         customer_name, customer_email, customer_phone, customer_notes, additional_notes, payment_terms,
-                        shipping_method, shipping_charges, quote_number))
+                        shipping_method, shipping_charges,pro_forma, quote_number))
 
 
     connection.commit()
     print("Quote Saved")
+
+def updateIsEditing(quote_number, isEditing):
+    try:
+        cursor.execute(f"UPDATE {quote_table} SET isEditing= {isEditing} WHERE Quote_Number='{quote_number}'")
+        cursor.commit()
+    except Exception as e:
+        print(e)
+
 
 def deleteQuote(id):
     print(id)

@@ -5,9 +5,36 @@ import pdfkit
 #path_wkhtmltopdf = "./bin/wkhtmltopdf.exe"
 #config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
 
+wire_transfer_info = """<tr>
+            <td colspan="3" style="font-size:12px;font-family:arial,helvetica,sans-serif">
+                <p style="font-size: 14px; font-weight: bold; text-align: center;">Wire Transfer Information</p>
+            </td>
+        </tr>
+        <tr>
+        <td height="45" colspan="2" valign="top" style="font-size: 100%;"><table width="100%" border="0">
+                <tr>
+                    <th scope="col"> <div align="center" style="border-right: 2px solid #000;">TRW ELECTRIC & SUPPLY COMPANY LLC<br />
+                            1106 Great Falls Ct. Unit A<br />
+                            Knightdale, NC 27545 USA<br />
+                            Tel: 1-800-479-8084<br />
+                            <span style="font-weight: bolder;">ATTN: PI 83121-81111</span>
+                        </div></th>
+                    <th scope="col"><p align="center" style="border-right: 2px solid #000;">TRUIST (BB&amp;T)<br />
+                            924 KILDAIRE FARM RD
+                            <br />
+                            CARY NC 27511-3923 USA<br />
+                            TEL 919-319-4820</p></th>
+                    <th scope="col"><p align="center">SWIFT CODE: BRBTUS33<br />
+                            ABA (ROUTING) # 053101121<br />
+                            ACCT# 0005201675253</p></th>
+                </tr>
+            </table>
+        </td>
+    </tr>"""
+
 def getHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,line_totals_list,stocks_list,
                 sender,sender_email,quote_number,customer_email,subject,date,payment_method,delivery_method,
-                additional_notes_list):
+                additional_notes_list,isWireTransfer = False):
     try:
 
         additional_notes = "" #TODO: see how get additional notes and change accordingly
@@ -26,7 +53,15 @@ def getHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,line
 
         parts_table = ""
         for i in range(len(parts_list)):
-            parts_table += f"""<tr align = 'center'><td style='text-align: center;'>{i+1}</td><td style='text-align: center;'>{quantities_list[i]}</td><td style='text-align: left;'>{parts_list[i]}</td><td style='text-align: center;'>{conditions_list[i]}</td><td style = 'text-align: center;'>${unit_totals_list[i]}</td><td style='text-align: center;'>${line_totals_list[i]}</td><td style='text-align: center;'>{stocks_list[i]}</td></tr>"""
+            try:
+                parts_table += f"""<tr align = 'center'><td style='text-align: center;'>{i+1}</td><td style='text-align: center;'>{quantities_list[i]}</td><td style='text-align: left;'>{parts_list[i]}</td><td style='text-align: center;'>{conditions_list[i]}</td><td style = 'text-align: center;'>${unit_totals_list[i]}</td><td style='text-align: center;'>${line_totals_list[i]}</td><td style='text-align: center;'>{stocks_list[i]}</td></tr>"""
+            except Exception as e:
+                print(e,"table"+str(i))
+
+        if isWireTransfer:
+            wire_transfer = wire_transfer_info
+        else:
+            wire_transfer = ""
 
         html = f"""
         <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -225,7 +260,7 @@ def getHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,line
                     <div style="border: 1px solid #cecfce; padding: 5px; font-weight: 600; line-height: 1.5;">{additional_notes}<br />
         </div>
                 </td>
-            </tr>
+            </tr> {wire_transfer}
             <hr />        <td><hr size="1" noshade="noshade" />
                 </td>
             </tr>
@@ -246,11 +281,11 @@ def getHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,line
 
         return html
     except Exception as e:
-        print(e)
+        print(e,"HTML")
 
 def getViewHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,line_totals_list,stocks_list,
                 sender,sender_email,quote_number,customer_email,subject,date,payment_method,delivery_method,
-                additional_notes_list):
+                additional_notes_list,isWireTransfer=False):
     try:
 
         additional_notes = ""
@@ -270,6 +305,11 @@ def getViewHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,
         parts_table = ""
         for i in range(len(parts_list)):
             parts_table += f"""<tr align = 'center'><td style='text-align: center;'>{i+1}</td><td style='text-align: center;'>{quantities_list[i]}</td><td style='text-align: left;'>{parts_list[i]}</td><td style='text-align: center;'>{conditions_list[i]}</td><td style = 'text-align: center;'>${unit_totals_list[i]}</td><td style='text-align: center;'>${line_totals_list[i]}</td><td style='text-align: center;'>{stocks_list[i]}</td></tr>"""
+
+        if isWireTransfer:
+            wire_transfer = wire_transfer_info
+        else:
+            wire_transfer = ""
 
         html = f"""
         <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -468,7 +508,7 @@ def getViewHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,
                     <div style="border: 1px solid #cecfce; padding: 5px; font-weight: 600; line-height: 1.5;">{additional_notes}<br />
         </div>
                 </td>
-            </tr>
+            </tr>{wire_transfer}
             <hr />        <td><hr size="1" noshade="noshade" />
                 </td>
             </tr>
