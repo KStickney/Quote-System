@@ -1,6 +1,6 @@
 import pyodbc
 import pandas as pd
-from datetime import date
+from datetime import date, datetime
 import pickle
 
 database_settings_file = "./data/database.pickle"
@@ -25,10 +25,22 @@ QUOTE_STARTING_NUMBER = '12000'
 connection = pyodbc.connect(r'Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ='+database_file+';')
 cursor = connection.cursor()
 
+#Get current date and time
+#today = datetime.now()
+#Convert string into datetime object for comparosin
+#date = datetime.strptime(string,'%Y-%m-%d %H:%M:%S.%f')
+
+
 #sql="Insert into Quotes (Quote_Number, Part_Number, Price) values ('8117-00004', 'CQM1-OC222','27')"
 #cursor.execute(sql)
 #connection.commit()
 
+def getQuoteLastEdited(quote_number):
+    try:
+        df = pd.read_sql(f"Select Last_Edited from {quote_table} WHERE Quote_Number = '{quote_number}'",connection)
+        return datetime.strptime(str(df.iloc[0][0]),'%Y-%m-%d %H:%M:%S.%f')
+    except Exception as e:
+        print(e)
 
 def getQuotes1(search,search_by):
     try:
@@ -103,31 +115,33 @@ def updateInvoiceNumber(num):
 
     connection.commit()
 
-def submitQuoteToDatabase(quote_number,quantities,part_numbers,conditions,unit_prices,line_totals,stock,notes,sender,sender_email,
+def submitQuoteToDatabase(quote_number,quantities,part_numbers,conditions,unit_prices,line_totals,stock,notes,subject,sender,sender_email,
                           customer_name,customer_email,customer_phone,customer_notes,additional_notes,payment_terms,
                           shipping_method,shipping_charges,pro_forma):
     cursor.execute("select Quote_Number from Quotes where Quote_Number = ?",quote_number) #checking see if already exists
     data = cursor.fetchall()
 
+    last_edited = str(datetime.now())
+
     if not data: #None found, so can insert new line
         Date = date.today().strftime("%m/%d/%Y")
         sql=f"Insert into Quotes (Quote_Number, Quantity, Part_Number, Condition, Unit_Price, Line_Total, Stock, Notes," \
-            "Sender,Sender_Email, Customer_Name, Customer_Email, Customer_Phone, Customer_Notes, Additional_Notes, Payment_Terms," \
-            "Shipping_Method, Shipping_Charges,_Date,Pro_Forma) " \
+            "Subject,Sender,Sender_Email, Customer_Name, Customer_Email, Customer_Phone, Customer_Notes, Additional_Notes, Payment_Terms," \
+            "Shipping_Method, Shipping_Charges,_Date,Pro_Forma,Last_Edited) " \
             f"values ('{quote_number}', '{quantities}','{part_numbers}','{conditions}','{unit_prices}','{line_totals}'," \
-            f"'{stock}','{notes}','{sender}','{sender_email}','{customer_name}','{customer_email}','{customer_phone}','{customer_notes}'," \
-            f"'{additional_notes}','{payment_terms}','{shipping_method}','{shipping_charges}','{Date}','{pro_forma}')"
+            f"'{stock}','{notes}','{subject}','{sender}','{sender_email}','{customer_name}','{customer_email}','{customer_phone}','{customer_notes}'," \
+            f"'{additional_notes}','{payment_terms}','{shipping_method}','{shipping_charges}','{Date}',{pro_forma},'{last_edited}')"
 
         cursor.execute(sql)
 
     else: #entry found, update instead (Completely updates - deletes and puts in)
 
         cursor.execute("UPDATE " + quote_table + " SET Quantity=?,Part_Number=?,Condition=?,Unit_Price=?,Line_Total=?," \
-                        "Stock=?,Notes=?,Sender=?,Sender_Email=?,Customer_Name=?,Customer_Email=?,Customer_Phone=?,Customer_Notes=?," \
-                        "Additional_Notes=?,Payment_Terms=?,Shipping_Method=?,Shipping_Charges=?,Pro_Forma=? WHERE Quote_Number=?",
-                       (quantities, part_numbers, conditions, unit_prices, line_totals, stock, notes, sender,sender_email,
+                        "Stock=?,Notes=?,Subject=?,Sender=?,Sender_Email=?,Customer_Name=?,Customer_Email=?,Customer_Phone=?,Customer_Notes=?," \
+                        "Additional_Notes=?,Payment_Terms=?,Shipping_Method=?,Shipping_Charges=?,Pro_Forma=?,Last_Edited=? WHERE Quote_Number=?",
+                       (quantities, part_numbers, conditions, unit_prices, line_totals, stock, notes,subject,sender,sender_email,
                         customer_name, customer_email, customer_phone, customer_notes, additional_notes, payment_terms,
-                        shipping_method, shipping_charges,pro_forma, quote_number))
+                        shipping_method, shipping_charges,pro_forma,last_edited, quote_number))
 
 
     connection.commit()
@@ -142,7 +156,6 @@ def updateIsEditing(quote_number, isEditing):
 
 
 def deleteQuote(id):
-    print(id)
     cursor.execute(f"DELETE FROM {quote_table} WHERE Quote_Number = '{id}'")
     cursor.commit()
     print("Quote Deleted")

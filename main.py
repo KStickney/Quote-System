@@ -104,6 +104,8 @@ class MainWindow(QMainWindow): #TODO: make function for when click into and out 
                     number = getNewInvoiceNumber()
                     self.tabs.widget(index).invoice_number.setText(number)
 
+                    self.tabs.widget(index).subject.setText("RFQ")
+
             if index == 0: #Databse
                 self.tabs.widget(index).onSubmitSearch()
 
@@ -115,7 +117,7 @@ class MainWindow(QMainWindow): #TODO: make function for when click into and out 
                 if self.tabs.widget(index).dock_widget.isFloating():
                     self.tabs.widget(index).dock_widget.setFloating(False)
         except Exception as e:
-            print(e)
+            sendMessage("Main Window Tabs Clicked",str(e),self)
 
 class ActiveQuote(QWidget):
     def __init__(self):
@@ -127,246 +129,276 @@ class ActiveQuote(QWidget):
 
         self.table_row_count = 0
 
+        #last date/time edited
+        self.last_time_edited = datetime.now()
+
         self.UIComponents()
 
     def UIComponents(self):
-        #Invoice Header
-        self.invoice_number = QLineEdit()
-        self.invoice_number.setPlaceholderText("Invoice Number")
-        self.invoice_number.setObjectName("invoice")
+        try:
+            #Invoice Header
+            invoice_label = QLabel("Quote Number: ")
+            invoice_label.setObjectName("invoice")
+            invoice_label.setMaximumWidth(125)
 
-        self.sent_from_label = QLabel("Sent From:")
-        self.sent_from_label.setObjectName("invoice")
-        self.sent_from_label.setAlignment(QtCore.Qt.AlignVCenter)
+            self.invoice_number = QLineEdit()
+            self.invoice_number.setPlaceholderText("Invoice Number")
+            self.invoice_number.setObjectName("invoice")
 
-        self.sent_from = QComboBox()
-        self.sent_from.addItems(senders.keys())
-        self.sent_from.setCurrentText(DEFAULT_USER)
+            self.sent_from_label = QLabel("Sent From:")
+            self.sent_from_label.setObjectName("invoice")
+            self.sent_from_label.setAlignment(QtCore.Qt.AlignVCenter)
+            self.sent_from_label.setMaximumWidth(87)
 
-        lay = QHBoxLayout()
-        lay.setSpacing(0)
-        lay.addWidget(self.sent_from_label)
-        lay.addWidget(self.sent_from)
+            self.sent_from = QComboBox()
+            self.sent_from.addItems(senders.keys())
+            self.sent_from.setCurrentText(DEFAULT_USER)
 
-        self.invoice_layout = QHBoxLayout()
-        self.invoice_layout.addWidget(self.invoice_number)
-        self.invoice_layout.addLayout(lay)
-        #self.invoice_layout.addWidget(self.sent_from_label)
-        #self.invoice_layout.addWidget(self.sent_from)
+            subj = QLabel("Subject: ")
+            subj.setObjectName("invoice")
+            subj.setMaximumWidth(75)
 
+            self.subject = QLineEdit()
+            self.subject.setObjectName("invoice")
 
-        #CUSTOMER INFO
-        cust_name = QLabel("Customer Name:")
-        cust_name.setObjectName("customer")
-        self.customer_name = QLineEdit()
-        self.customer_name.setPlaceholderText("Customer Name")
-        self.customer_name.setObjectName("customer")
-        lay1 = QHBoxLayout()
-        lay1.addWidget(cust_name)
-        lay1.addWidget(self.customer_name)
+            lay = QHBoxLayout()
+            lay.setSpacing(0)
+            lay.addWidget(self.sent_from_label)
+            lay.addWidget(self.sent_from)
 
-        cust_email = QLabel("Customer Email:")
-        cust_email.setObjectName("customer")
-        self.customer_email = QLineEdit()
-        self.customer_email.setPlaceholderText("Customer Email")
-        self.customer_email.setObjectName("customer")
-        lay2 = QHBoxLayout()
-        lay2.addWidget(cust_email)
-        lay2.addWidget(self.customer_email)
+            lay2 = QHBoxLayout()
+            lay2.setSpacing(0)
+            lay2.addWidget(invoice_label)
+            lay2.addWidget(self.invoice_number)
 
-        cust_phone = QLabel("Customer Phone:")
-        cust_phone.setObjectName("customer")
-        self.customer_phone = QLineEdit()
-        self.customer_phone.setPlaceholderText("Customer Phone")
-        self.customer_phone.setObjectName("customer")
-        lay3 = QHBoxLayout()
-        lay3.addWidget(cust_phone)
-        lay3.addWidget(self.customer_phone)
+            lay3 = QHBoxLayout()
+            lay3.setSpacing(0)
+            lay3.addWidget(subj)
+            lay3.addWidget(self.subject)
 
-        layout = QVBoxLayout()
-        layout.setSpacing(0)
-        for item in (lay1,lay2,lay3):
-            layout.addLayout(item)
+            self.invoice_layout = QHBoxLayout()
+            #self.invoice_layout.addWidget(self.invoice_number)
+            self.invoice_layout.addLayout(lay2)
+            self.invoice_layout.addLayout(lay3)
+            self.invoice_layout.addLayout(lay)
+            #self.invoice_layout.addWidget(self.sent_from_label)
+            #self.invoice_layout.addWidget(self.sent_from)
 
 
-        self.customer_info = QTextEdit()
-        self.customer_info.setObjectName("customer")
-        self.customer_info.setPlaceholderText("Customer Info")
+            #CUSTOMER INFO
+            cust_name = QLabel("Customer Name:")
+            cust_name.setObjectName("customer")
+            self.customer_name = QLineEdit()
+            self.customer_name.setPlaceholderText("Customer Name")
+            self.customer_name.setObjectName("customer")
+            lay1 = QHBoxLayout()
+            lay1.addWidget(cust_name)
+            lay1.addWidget(self.customer_name)
 
-        self.customer_layout = QHBoxLayout()
-        #self.customer_layout.addWidget(self.customer_name)
-        self.customer_layout.addLayout(layout)
-        self.customer_layout.addWidget(self.customer_info)
+            cust_email = QLabel("Customer Email:")
+            cust_email.setObjectName("customer")
+            self.customer_email = QLineEdit()
+            self.customer_email.setPlaceholderText("Customer Email")
+            self.customer_email.setObjectName("customer")
+            lay2 = QHBoxLayout()
+            lay2.addWidget(cust_email)
+            lay2.addWidget(self.customer_email)
 
+            cust_phone = QLabel("Customer Phone:")
+            cust_phone.setObjectName("customer")
+            self.customer_phone = QLineEdit()
+            self.customer_phone.setPlaceholderText("Customer Phone")
+            self.customer_phone.setObjectName("customer")
+            lay3 = QHBoxLayout()
+            lay3.addWidget(cust_phone)
+            lay3.addWidget(self.customer_phone)
 
-        #SHIPPING
-        p = QLabel("Payment Terms:")
-        s = QLabel("Shipping Method:")
-        sc = QLabel("Shipping Charges:")
-        for label in (p,s,sc):
-            label.setAlignment(QtCore.Qt.AlignVCenter|QtCore.Qt.AlignRight)
-            label.setObjectName("shipping")
-
-        self.payment_terms = QComboBox()
-        self.payment_terms.setEditable(False)
-        self.payment_terms.addItems(PAYMENT_TERMS.keys())
-
-        self.shipping_method = QComboBox()
-        self.shipping_method.setEditable(False)
-        self.shipping_method.addItems(SHIPPING_METHODS)
-
-        self.shipping_charges = QLineEdit()
-
-        for item in (self.payment_terms,self.shipping_method,self.shipping_charges):
-            item.setObjectName("shipping")
-
-        self.wire_transfer = QCheckBox("Pro Forma Invoice")
-        self.wire_transfer.setObjectName("wire")
-
-        lay1 = QHBoxLayout()
-        lay1.addWidget(p)
-        lay1.addWidget(self.payment_terms)
-
-        lay2 = QHBoxLayout()
-        lay2.addWidget(s)
-        lay2.addWidget(self.shipping_method)
-
-        lay3 = QHBoxLayout()
-        lay3.addWidget(sc)
-        lay3.addWidget(self.shipping_charges)
-
-        shipping_layout = QHBoxLayout()
-        shipping_layout.addLayout(lay1)
-        shipping_layout.addLayout(lay2)
-        shipping_layout.addLayout(lay3)
-        shipping_layout.addWidget(self.wire_transfer)
+            layout = QVBoxLayout()
+            layout.setSpacing(0)
+            for item in (lay1,lay2,lay3):
+                layout.addLayout(item)
 
 
-        #Where table grid used to be
-        #ITEM TABLE
-        self.add_table_item_btn = QPushButton("Add Item")
-        self.add_table_item_btn.setObjectName("add-item")
-        #self.add_table_item_btn.clicked.connect(lambda: self.add_table_item(None,True))
-        self.add_table_item_btn.clicked.connect(lambda: self.addTableRow(i=None, remove_btn=True))
+            self.customer_info = QTextEdit()
+            self.customer_info.setObjectName("customer")
+            self.customer_info.setPlaceholderText("Customer Info")
 
-        self.del_table_item_btn = QPushButton("Delete Item")
-        self.del_table_item_btn.setObjectName("add-item")
-        self.del_table_item_btn.clicked.connect(lambda: self.deleteTableItem())
-        #self.del_table_item_btn.clicked.connect(lambda: self.deleteTableRow())
-
-        self.add_note_btn = QCheckBox("Add Note")
-        self.add_note_btn.setObjectName("add-item")
-        #self.add_note_btn.toggled.connect(lambda: self.addNoteCol())
-        self.add_note_btn.toggled.connect(lambda: self.toggleNoteCol())
-        self.add_note_btn.setChecked(False)
-
-        #PART NUMBER TABLE
-        self.table = QGridLayout()
-        self.table.setSpacing(0)
-        self.table.setAlignment(QtCore.Qt.AlignCenter)
-        for i in range(INITIAL_PART_ROWS):
-            self.addTableRow(i)
-        #self.addNoteCol()
-        btn_lay = QHBoxLayout()
-        btn_lay.setAlignment(QtCore.Qt.AlignLeft)
-        btn_lay.setSpacing(10)
-        self.table_buttons = [self.add_table_item_btn,self.del_table_item_btn,self.add_note_btn]
-        for btn in self.table_buttons:
-            btn_lay.addWidget(btn)
-
-        self.grid_lay = QVBoxLayout()
-        self.grid_lay.setSpacing(0)
-        self.grid_lay.setStretch(0,0)
-        self.grid_lay.addLayout(self.table)
-        self.grid_lay.addLayout(btn_lay)
-
-        #i = INITIAL_PART_ROWS + 1
-        #self.addTableButtons(i)
-
-        #self.table = CustomGridLayout()
-        #self.table.setSpacing(0)
-        #self.table.setAlignment(QtCore.Qt.AlignCenter)
-        #for i in range(INITIAL_PART_ROWS):
-            #self.addTableRow(i)
-        #self.toggleNoteCol()
-
-        #self.table_buttons = [self.add_table_item_btn,self.del_table_item_btn,self.add_note_btn]
-        #i = INITIAL_PART_ROWS + 1
-        #self.addTableButtons2(i)
+            self.customer_layout = QHBoxLayout()
+            #self.customer_layout.addWidget(self.customer_name)
+            self.customer_layout.addLayout(layout)
+            self.customer_layout.addWidget(self.customer_info)
 
 
-        self.note_group = QGroupBox("Notes") #Group Box for the quote notes
-        self.note_group.setCheckable(False)
-        self.note_group.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed) #.Preferred
-        self.note_group_grid = QGridLayout()
-        self.note_group.setLayout(self.note_group_grid)
-        NOTE_COLS = 2
-        NOTE_ROWS = math.ceil(len(sample_notes) / NOTE_COLS) #Rounds up so another col is not created
-        i = 0
-        j=0
-        for k in range(len(sample_notes)): #Populates the grid layout
-            box = QCheckBox(sample_notes[k],self.note_group)
-            box.clicked.connect(lambda:self.note_checkbox_state())
-            if i >= NOTE_ROWS:
-                j+=1
-                i = 0
-            self.note_group_grid.addWidget(box,i,j)
-            i += 1
+            #SHIPPING
+            p = QLabel("Payment Terms:")
+            s = QLabel("Shipping Method:")
+            sc = QLabel("Shipping Charges:")
+            for label in (p,s,sc):
+                label.setAlignment(QtCore.Qt.AlignVCenter|QtCore.Qt.AlignRight)
+                label.setObjectName("shipping")
 
-        self.additional_info_label = QLabel("Additional Info")
-        self.additional_info_label.setAlignment(QtCore.Qt.AlignLeft)
-        self.additional_infos = QTextEdit()
-        self.additional_infos.setPlaceholderText("Additional Info")
-        self.additional_infos.setObjectName("info")
-        self.additional_info_layout = QVBoxLayout()
-        self.additional_info_layout.setSpacing(0)
-        self.additional_info_layout.addWidget(self.additional_info_label)
-        self.additional_info_layout.addWidget(self.additional_infos)
+            self.payment_terms = QComboBox()
+            self.payment_terms.setEditable(False)
+            self.payment_terms.addItems(PAYMENT_TERMS.keys())
 
-        self.additional_info_out_layout = QVBoxLayout() #Make one layout for the group,label, and text box so closer together
-        self.additional_info_out_layout.addWidget(self.note_group)
-        self.additional_info_out_layout.addLayout(self.additional_info_layout)
+            self.shipping_method = QComboBox()
+            self.shipping_method.setEditable(False)
+            self.shipping_method.addItems(SHIPPING_METHODS)
 
-        self.save_btn = QPushButton("Save")
-        self.save_btn.clicked.connect(lambda: self.submitQuote())
+            self.shipping_charges = QLineEdit()
 
-        self.save_and_exit_btn = QPushButton("Save and Close")
-        self.save_and_exit_btn.clicked.connect(lambda: self.saveAndClose())
+            for item in (self.payment_terms,self.shipping_method,self.shipping_charges):
+                item.setObjectName("shipping")
 
-        self.close_btn = QPushButton("Close")
-        self.close_btn.clicked.connect(self.Close)
+            self.wire_transfer = QCheckBox("Pro Forma Invoice")
+            self.wire_transfer.setObjectName("wire")
 
-        self.save_PDF_btn = QPushButton("Create PDF")
-        self.save_PDF_btn.clicked.connect(self.createPDF)
+            lay1 = QHBoxLayout()
+            lay1.addWidget(p)
+            lay1.addWidget(self.payment_terms)
 
-        self.submit_layout = QHBoxLayout()
-        for btn in (self.save_btn,self.save_and_exit_btn,self.close_btn,self.save_PDF_btn):
-            self.submit_layout.addWidget(btn)
-            btn.setObjectName("submit")
+            lay2 = QHBoxLayout()
+            lay2.addWidget(s)
+            lay2.addWidget(self.shipping_method)
 
-        #MAIN LAYOUT
-        self.main_layout = QVBoxLayout() #The main layout for the quote part of the app
-        self.main_layout.setSpacing(30)
-        self.main_layout.addLayout(self.invoice_layout)
-        #self.main_layout.addLayout(self.table) #TODO: Fix spacing, table taking up extra space
-        self.main_layout.addLayout(self.grid_lay)
-        self.main_layout.addLayout(self.customer_layout)
-        self.main_layout.addLayout(shipping_layout)
-        self.main_layout.addLayout(self.additional_info_out_layout)
-        self.main_layout.addLayout(self.submit_layout)
+            lay3 = QHBoxLayout()
+            lay3.addWidget(sc)
+            lay3.addWidget(self.shipping_charges)
+
+            shipping_layout = QHBoxLayout()
+            shipping_layout.addLayout(lay1)
+            shipping_layout.addLayout(lay2)
+            shipping_layout.addLayout(lay3)
+            shipping_layout.addWidget(self.wire_transfer)
 
 
-        widget = QWidget()
-        widget.setLayout(self.main_layout)
+            #Where table grid used to be
+            #ITEM TABLE
+            self.add_table_item_btn = QPushButton("Add Item")
+            self.add_table_item_btn.setObjectName("add-item")
+            #self.add_table_item_btn.clicked.connect(lambda: self.add_table_item(None,True))
+            self.add_table_item_btn.clicked.connect(lambda: self.addTableRow(i=None, remove_btn=True))
 
-        self.scroll_area = QScrollArea()  # Allows app to scroll
-        self.scroll_area.setWidgetResizable(True)
-        #self.scroll_area.setLayout(self.main_layout)
-        self.scroll_area.setWidget(widget)
+            self.del_table_item_btn = QPushButton("Delete Item")
+            self.del_table_item_btn.setObjectName("add-item")
+            self.del_table_item_btn.clicked.connect(lambda: self.deleteTableItem())
+            #self.del_table_item_btn.clicked.connect(lambda: self.deleteTableRow())
 
-        self.vlayout = QVBoxLayout()
-        self.vlayout.addWidget(self.scroll_area)
-        self.setLayout(self.vlayout)
+            self.add_note_btn = QCheckBox("Add Note")
+            self.add_note_btn.setObjectName("add-item")
+            #self.add_note_btn.toggled.connect(lambda: self.addNoteCol())
+            self.add_note_btn.toggled.connect(lambda: self.toggleNoteCol())
+            self.add_note_btn.setChecked(False)
+
+            #PART NUMBER TABLE
+            self.table = QGridLayout()
+            self.table.setSpacing(0)
+            self.table.setAlignment(QtCore.Qt.AlignCenter)
+            for i in range(INITIAL_PART_ROWS):
+                self.addTableRow(i)
+            #self.addNoteCol()
+            btn_lay = QHBoxLayout()
+            btn_lay.setAlignment(QtCore.Qt.AlignLeft)
+            btn_lay.setSpacing(10)
+            self.table_buttons = [self.add_table_item_btn,self.del_table_item_btn,self.add_note_btn]
+            for btn in self.table_buttons:
+                btn_lay.addWidget(btn)
+
+            self.grid_lay = QVBoxLayout()
+            self.grid_lay.setSpacing(0)
+            self.grid_lay.setStretch(0,0)
+            self.grid_lay.addLayout(self.table)
+            self.grid_lay.addLayout(btn_lay)
+
+            #i = INITIAL_PART_ROWS + 1
+            #self.addTableButtons(i)
+
+            #self.table = CustomGridLayout()
+            #self.table.setSpacing(0)
+            #self.table.setAlignment(QtCore.Qt.AlignCenter)
+            #for i in range(INITIAL_PART_ROWS):
+                #self.addTableRow(i)
+            #self.toggleNoteCol()
+
+            #self.table_buttons = [self.add_table_item_btn,self.del_table_item_btn,self.add_note_btn]
+            #i = INITIAL_PART_ROWS + 1
+            #self.addTableButtons2(i)
+
+
+            self.note_group = QGroupBox("Notes") #Group Box for the quote notes
+            self.note_group.setCheckable(False)
+            self.note_group.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed) #.Preferred
+            self.note_group_grid = QGridLayout()
+            self.note_group.setLayout(self.note_group_grid)
+            NOTE_COLS = 2
+            NOTE_ROWS = math.ceil(len(sample_notes) / NOTE_COLS) #Rounds up so another col is not created
+            i = 0
+            j=0
+            for k in range(len(sample_notes)): #Populates the grid layout
+                box = QCheckBox(sample_notes[k],self.note_group)
+                box.clicked.connect(lambda:self.note_checkbox_state())
+                if i >= NOTE_ROWS:
+                    j+=1
+                    i = 0
+                self.note_group_grid.addWidget(box,i,j)
+                i += 1
+
+            self.additional_info_label = QLabel("Additional Info")
+            self.additional_info_label.setAlignment(QtCore.Qt.AlignLeft)
+            self.additional_infos = QTextEdit()
+            self.additional_infos.setPlaceholderText("Additional Info")
+            self.additional_infos.setObjectName("info")
+            self.additional_info_layout = QVBoxLayout()
+            self.additional_info_layout.setSpacing(0)
+            self.additional_info_layout.addWidget(self.additional_info_label)
+            self.additional_info_layout.addWidget(self.additional_infos)
+
+            self.additional_info_out_layout = QVBoxLayout() #Make one layout for the group,label, and text box so closer together
+            self.additional_info_out_layout.addWidget(self.note_group)
+            self.additional_info_out_layout.addLayout(self.additional_info_layout)
+
+            self.save_btn = QPushButton("Save")
+            self.save_btn.clicked.connect(lambda: self.submitQuote())
+
+            self.save_and_exit_btn = QPushButton("Save and Close")
+            self.save_and_exit_btn.clicked.connect(lambda: self.saveAndClose())
+
+            self.close_btn = QPushButton("Close")
+            self.close_btn.clicked.connect(self.Close)
+
+            self.save_PDF_btn = QPushButton("Create PDF")
+            self.save_PDF_btn.clicked.connect(self.createPDF)
+
+            self.submit_layout = QHBoxLayout()
+            for btn in (self.save_btn,self.save_and_exit_btn,self.close_btn,self.save_PDF_btn):
+                self.submit_layout.addWidget(btn)
+                btn.setObjectName("submit")
+
+            #MAIN LAYOUT
+            self.main_layout = QVBoxLayout() #The main layout for the quote part of the app
+            self.main_layout.setSpacing(30)
+            self.main_layout.addLayout(self.invoice_layout)
+            #self.main_layout.addLayout(self.table) #TODO: Fix spacing, table taking up extra space
+            self.main_layout.addLayout(self.grid_lay)
+            self.main_layout.addLayout(self.customer_layout)
+            self.main_layout.addLayout(shipping_layout)
+            self.main_layout.addLayout(self.additional_info_out_layout)
+            self.main_layout.addLayout(self.submit_layout)
+
+
+            widget = QWidget()
+            widget.setLayout(self.main_layout)
+
+            self.scroll_area = QScrollArea()  # Allows app to scroll
+            self.scroll_area.setWidgetResizable(True)
+            #self.scroll_area.setLayout(self.main_layout)
+            self.scroll_area.setWidget(widget)
+
+            self.vlayout = QVBoxLayout()
+            self.vlayout.addWidget(self.scroll_area)
+            self.setLayout(self.vlayout)
+        except Exception as e:
+            sendMessage("Active Quote GUI Setup",str(e),self)
 
     def note_checkbox_state(self):
         btn = self.sender()
@@ -519,7 +551,7 @@ class ActiveQuote(QWidget):
                 #self.addTableButtons(i)
 
         except Exception as e:
-            print(e)
+            sendMessage("Active Quote GUI Setup",str(e),self)
 
     def calculateLineTotal(self):
         try:
@@ -562,7 +594,7 @@ class ActiveQuote(QWidget):
             self.table.itemAtPosition(index,6).widget().setText(str(format(quantity *unit, '.0f')))
 
         except Exception as e:
-            print(e)
+            sendMessage("Active Quote GUI Setup",str(e),self)
 
 
     def addTableButtons(self,i):
@@ -786,18 +818,33 @@ class ActiveQuote(QWidget):
             #open pdf
             subprocess.Popen([pdf],shell=True)
         except Exception as e:
-            print(e)
+            sendMessage("Create PDF",str(e),self)
 
     def submitQuote(self):
-        try: #to convert "None" to Proper None:    x = None if x == 'None' else x
+       #to convert "None" to Proper None:    x = None if x == 'None' else x
 
-            #for row in range(1, self.table.count() - 1): #Checks to see if missing info #TODO: Want??
-                #for col in range(2, self.table.itemAt(row).count()):
-                    #if self.table.itemAt(row).layout().itemAt(col).widget().text() == "":
-                        #sendMessage("Missing Info",
-                                    #"There are columns with missing information. Would you like to continue?",parent = main_window)
+        #for row in range(1, self.table.count() - 1): #Checks to see if missing info #TODO: Want??
+            #for col in range(2, self.table.itemAt(row).count()):
+                #if self.table.itemAt(row).layout().itemAt(col).widget().text() == "":
+                    #sendMessage("Missing Info",
+                                #"There are columns with missing information. Would you like to continue?",parent = main_window)
 
-            quote_number = self.invoice_number.text()
+        quote_number = self.invoice_number.text()
+
+        #if datetime user has with quote is less than the one in the database - means someone else has changed it already
+        action = ""
+        try:
+            if getQuoteLastEdited(quote_number) > self.last_time_edited:
+                msg = QMessageBox()
+                msg.setText("Another User has updated this quote since you started editing.\nWould you like to still submit?")
+                msg.setWindowTitle("Not most current edit")
+                msg.setIcon(QMessageBox.Critical)
+                msg.setStandardButtons(QMessageBox.Yes|QMessageBox.No)
+                action = msg.exec()
+        except:
+            pass
+
+        if action != QMessageBox.No:
 
             quantities = ""
             part_numbers = ""
@@ -849,6 +896,8 @@ class ActiveQuote(QWidget):
             stocks = stocks[:-1]
             notes = notes[:-1]
 
+            subject = self.subject.text()
+
             sender = self.sent_from.currentText()
 
             sender_email = senders[sender]
@@ -873,12 +922,10 @@ class ActiveQuote(QWidget):
 
             submitQuoteToDatabase(quote_number=quote_number,quantities=quantities,part_numbers=part_numbers,
                                   conditions=conditions,unit_prices=unit_prices,line_totals=line_totals,stock=stocks,
-                                  notes=notes,sender=sender,sender_email=sender_email,customer_name=customer_name,customer_email=customer_email,
+                                  notes=notes,subject=subject,sender=sender,sender_email=sender_email,customer_name=customer_name,customer_email=customer_email,
                                   customer_phone=customer_phone,customer_notes=customer_notes,additional_notes=additional_notes,
                                   payment_terms=payment_terms,shipping_method=shipping_method,shipping_charges=shipping_charges,pro_forma=pro_forma)
 
-        except Exception as e:
-            print(e)
 
     def getTableItemContents(self,row,j):
         if self.table.itemAtPosition(row, j).widget().text() != "":
@@ -896,22 +943,24 @@ class ViewQuotes(QMainWindow):
         self.showMaximized()
 
     def UIComponents(self):
-        size = self.size()
-        print(size)
+        try:
+            size = self.size()
 
-        self.tabs = QTabWidget()
-        self.tabs.setTabsClosable(True)
-        self.tabs.tabCloseRequested.connect(lambda index: self.tabs.removeTab(index))
-        self.tabs.setStyleSheet("QTabBar::tab{max-height:10px;}")
+            self.tabs = QTabWidget()
+            self.tabs.setTabsClosable(True)
+            self.tabs.tabCloseRequested.connect(lambda index: self.tabs.removeTab(index))
+            self.tabs.setStyleSheet("QTabBar::tab{max-height:10px;}")
 
-        self.dock_widget = QDockWidget("Active Quotes")
-        self.dock_widget.setWidget(self.tabs)
-        self.addDockWidget(QtCore.Qt.TopDockWidgetArea,self.dock_widget)
+            self.dock_widget = QDockWidget("Active Quotes")
+            self.dock_widget.setWidget(self.tabs)
+            self.addDockWidget(QtCore.Qt.TopDockWidgetArea,self.dock_widget)
 
-        self.dock_widget.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
-        self.setDockOptions(self.GroupedDragging | self.AllowTabbedDocks | self.AllowNestedDocks)
-        self.setTabPosition(QtCore.Qt.AllDockWidgetAreas, QTabWidget.North)
-        self.tabifyDockWidget(self.dock_widget,self.dock_widget)
+            self.dock_widget.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
+            self.setDockOptions(self.GroupedDragging | self.AllowTabbedDocks | self.AllowNestedDocks)
+            self.setTabPosition(QtCore.Qt.AllDockWidgetAreas, QTabWidget.North)
+            self.tabifyDockWidget(self.dock_widget,self.dock_widget)
+        except Exception as e:
+            sendMessage("View Quote GUI Setup", str(e), self)
 
     def addTabPage(self,html,quote_number):
         view = QWebEngineView()
@@ -933,60 +982,63 @@ class Settings(QWidget):
         self.UIComponents()
 
     def UIComponents(self):
-        self.tool_box = QToolBox()
+        try:
+            self.tool_box = QToolBox()
 
-        #STYLE
-        self.style_group = QGroupBox()
-        self.style_group.setCheckable(False)
-        self.style_layout = QVBoxLayout()
-        self.style_group.setLayout(self.style_layout)
+            #STYLE
+            self.style_group = QGroupBox()
+            self.style_group.setCheckable(False)
+            self.style_layout = QVBoxLayout()
+            self.style_group.setLayout(self.style_layout)
 
-        for theme in ("Dark, Orange","Dark, Blue","Classic","Dark","Light"):
-            btn = QRadioButton(theme)
-            btn.clicked.connect(lambda: self.change_style())
-            if THEME == theme:
-                btn.setChecked(True)
-            self.style_layout.addWidget(btn)
+            for theme in ("Dark, Orange","Dark, Blue","Classic","Dark","Light"):
+                btn = QRadioButton(theme)
+                btn.clicked.connect(lambda: self.change_style())
+                if THEME == theme:
+                    btn.setChecked(True)
+                self.style_layout.addWidget(btn)
 
-        button_group = QButtonGroup()
-        button_group.setExclusive(True)
+            button_group = QButtonGroup()
+            button_group.setExclusive(True)
 
-        #Item table boxes - Done Later
+            #Item table boxes - Done Later
 
-        #DATABASE HEADERS
-        self.database_edit_layout = QHBoxLayout()
-        for header in database_headers:
-            self.addCol(header)
+            #DATABASE HEADERS
+            self.database_edit_layout = QHBoxLayout()
+            for header in database_headers:
+                self.addCol(header)
 
-        self.database_btn_layout = QHBoxLayout()
-        self.database_submit_btn = QPushButton("Submit")
-        self.database_submit_btn.clicked.connect(lambda: self.submitHeaders())
-        self.database_add_col_btn = QPushButton("Add Header")
-        self.database_add_col_btn.clicked.connect(lambda: self.addCol(preferred_search))
-        self.database_del_col_btn = QPushButton("Delete Header")
-        self.database_del_col_btn.clicked.connect(lambda: self.delCol())
-        for btn in (self.database_submit_btn,self.database_add_col_btn, self.database_del_col_btn):
-            self.database_btn_layout.addWidget(btn)
-            btn.setObjectName("database-edit")
+            self.database_btn_layout = QHBoxLayout()
+            self.database_submit_btn = QPushButton("Submit")
+            self.database_submit_btn.clicked.connect(lambda: self.submitHeaders())
+            self.database_add_col_btn = QPushButton("Add Header")
+            self.database_add_col_btn.clicked.connect(lambda: self.addCol(preferred_search))
+            self.database_del_col_btn = QPushButton("Delete Header")
+            self.database_del_col_btn.clicked.connect(lambda: self.delCol())
+            for btn in (self.database_submit_btn,self.database_add_col_btn, self.database_del_col_btn):
+                self.database_btn_layout.addWidget(btn)
+                btn.setObjectName("database-edit")
 
-        self.database_layout = QVBoxLayout()
-        self.database_layout.addLayout(self.database_edit_layout)
-        self.database_layout.addLayout(self.database_btn_layout)
-        self.database_widget = QWidget()
-        self.database_widget.setLayout(self.database_layout)
+            self.database_layout = QVBoxLayout()
+            self.database_layout.addLayout(self.database_edit_layout)
+            self.database_layout.addLayout(self.database_btn_layout)
+            self.database_widget = QWidget()
+            self.database_widget.setLayout(self.database_layout)
 
-        #Setup Toolbox and main layout for tab
-        self.tool_box.addItem(self.style_group,"Style")
-        self.tool_box.addItem(self.refresh_table_maker(),"Item Table")
-        self.tool_box.addItem(self.database_widget,"Database Headers")
-        self.tool_box.addItem(QWidget(),"")
-        self.tool_box.setContentsMargins(80,80,100,100)
+            #Setup Toolbox and main layout for tab
+            self.tool_box.addItem(self.style_group,"Style")
+            self.tool_box.addItem(self.refresh_table_maker(),"Item Table")
+            self.tool_box.addItem(self.database_widget,"Database Headers")
+            self.tool_box.addItem(QWidget(),"")
+            self.tool_box.setContentsMargins(80,80,100,100)
 
-        self.tool_box.setCurrentIndex(self.tool_box.count()-1)
+            self.tool_box.setCurrentIndex(self.tool_box.count()-1)
 
-        self.main_layout = QVBoxLayout()
-        self.main_layout.addWidget(self.tool_box)
-        self.setLayout(self.main_layout)
+            self.main_layout = QVBoxLayout()
+            self.main_layout.addWidget(self.tool_box)
+            self.setLayout(self.main_layout)
+        except Exception as e:
+            sendMessage("Settings GUI Setup", str(e), self)
 
     def refresh_table_maker(self,delete_tab = False):
         try:
@@ -1051,7 +1103,7 @@ class Settings(QWidget):
                 database_headers.append(self.database_edit_layout.itemAt(i).widget().currentText())
             storeSettings()
         except Exception as e:
-            print(e)
+            sendMessage("Settings Submit Headers",str(e),self)
 
     def addCol(self,header):
         wid = QComboBox()
@@ -1081,98 +1133,104 @@ class Database(QWidget):
         self.UIComponents()
 
     def UIComponents(self):
-        self.new_quote_btn = QPushButton("New Quote")
-        self.new_quote_btn.clicked.connect(lambda: self.newQuote())
+        try:
+            self.new_quote_btn = QPushButton("New Quote")
+            self.new_quote_btn.clicked.connect(lambda: self.newQuote())
 
-        self.refresh_btn = QPushButton("Refresh")
-        self.refresh_btn.clicked.connect(self.onSubmitSearch)
+            self.refresh_btn = QPushButton("Refresh")
+            self.refresh_btn.clicked.connect(self.onSubmitSearch)
 
-        self.search_by_box2 = QComboBox()
-        self.addComboOptions(self.search_by_box2)
+            self.search_by_box2 = QComboBox()
+            self.addComboOptions(self.search_by_box2)
 
-        self.search_box2 = QLineEdit()
-        self.search_box2.returnPressed.connect(self.onSubmitSearch)
-        self.search_box2.setPlaceholderText("Search")
-        self.search_box2.setAlignment(QtCore.Qt.AlignCenter)
+            self.search_box2 = QLineEdit()
+            self.search_box2.returnPressed.connect(self.onSubmitSearch)
+            self.search_box2.setPlaceholderText("Search")
+            self.search_box2.setAlignment(QtCore.Qt.AlignCenter)
 
-        self.search_by_box = QComboBox()
-        self.addComboOptions(self.search_by_box)
+            self.search_by_box = QComboBox()
+            self.addComboOptions(self.search_by_box)
 
-        #self.search_by_box.setCurrentText("Search by part number")
-        #search_list = ["Search by part","Search by quote","Search by name"]
-        #self.search_by_box.addItems(search_list)
+            #self.search_by_box.setCurrentText("Search by part number")
+            #search_list = ["Search by part","Search by quote","Search by name"]
+            #self.search_by_box.addItems(search_list)
 
-        self.search_box = QLineEdit()
-        self.search_box.returnPressed.connect(self.onSubmitSearch)
-        self.search_box.setPlaceholderText("Search")
-        self.search_box.setAlignment(QtCore.Qt.AlignCenter)
+            self.search_box = QLineEdit()
+            self.search_box.returnPressed.connect(self.onSubmitSearch)
+            self.search_box.setPlaceholderText("Search")
+            self.search_box.setAlignment(QtCore.Qt.AlignCenter)
 
-        self.search_btn = QPushButton(QIcon("./images/search image.png"),"Search")
-        self.search_btn.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.search_btn.clicked.connect(self.onSubmitSearch)
+            self.search_btn = QPushButton(QIcon("./images/search image.png"),"Search")
+            self.search_btn.setLayoutDirection(QtCore.Qt.RightToLeft)
+            self.search_btn.clicked.connect(self.onSubmitSearch)
 
-        self.search_layer = QHBoxLayout()
-        for wid in (self.new_quote_btn, self.refresh_btn,self.search_by_box2,self.search_box2,
-                self.search_by_box,self.search_box,self.search_btn):
-            self.search_layer.addWidget(wid)
-            wid.setObjectName("search")
-        self.search_layer.setAlignment(QtCore.Qt.AlignRight)
+            self.search_layer = QHBoxLayout()
+            for wid in (self.new_quote_btn, self.refresh_btn,self.search_by_box2,self.search_box2,
+                    self.search_by_box,self.search_box,self.search_btn):
+                self.search_layer.addWidget(wid)
+                wid.setObjectName("search")
+            self.search_layer.setAlignment(QtCore.Qt.AlignRight)
 
-        self.table_grid = QGridLayout()
-        self.table_grid.setSpacing(0)
-        self.table_grid.setVerticalSpacing(0)
-        self.table_grid.setSizeConstraint(QLayout.SetMinimumSize)
-        self.addTableHeaders()
+            self.table_grid = QGridLayout()
+            self.table_grid.setSpacing(0)
+            self.table_grid.setVerticalSpacing(0)
+            self.table_grid.setSizeConstraint(QLayout.SetMinimumSize)
+            self.addTableHeaders()
 
-        self.left = QToolButton()
-        self.left.clicked.connect(self.moveSearchLeft)
-        self.right = QToolButton()
-        self.right.clicked.connect(self.moveSearchRight)
+            self.left = QToolButton()
+            self.left.clicked.connect(self.moveSearchLeft)
+            self.right = QToolButton()
+            self.right.clicked.connect(self.moveSearchRight)
 
-        arrow_lay = QHBoxLayout()
-        arrow_lay.addWidget(self.left)
-        arrow_lay.addWidget(self.right)
-        arrow_lay.setAlignment(QtCore.Qt.AlignCenter)
+            arrow_lay = QHBoxLayout()
+            arrow_lay.addWidget(self.left)
+            arrow_lay.addWidget(self.right)
+            arrow_lay.setAlignment(QtCore.Qt.AlignCenter)
 
-        search_lay = QVBoxLayout()
-        search_lay.addLayout(self.table_grid)
-        search_lay.addLayout(arrow_lay)
-        search_lay.setSpacing(0)
+            search_lay = QVBoxLayout()
+            search_lay.addLayout(self.table_grid)
+            search_lay.addLayout(arrow_lay)
+            search_lay.setSpacing(0)
 
 
-        #OPENS DATABASE and reads as a pandas dataframe and inserts into grid
-        #df = pd.read_csv(DATABASE_FILE) #TODO: change to getQuotes() and select how many want to show initially
-        #self.insertDatabaseGrid(df, df)
+            #OPENS DATABASE and reads as a pandas dataframe and inserts into grid
+            #df = pd.read_csv(DATABASE_FILE) #TODO: change to getQuotes() and select how many want to show initially
+            #self.insertDatabaseGrid(df, df)
 
-        self.main_layout = QVBoxLayout()
-        self.main_layout.addLayout(self.search_layer)
-        self.main_layout.addLayout(search_lay)
-        self.main_layout.setSpacing(50)
-        #self.main_layout.addLayout(self.table_grid)
-        #self.main_layout.addLayout(arrow_lay)
-        #self.main_layout.addWidget(self.scroll_area)
-        #self.setLayout(self.main_layout)
+            self.main_layout = QVBoxLayout()
+            self.main_layout.addLayout(self.search_layer)
+            self.main_layout.addLayout(search_lay)
+            self.main_layout.setSpacing(50)
+            #self.main_layout.addLayout(self.table_grid)
+            #self.main_layout.addLayout(arrow_lay)
+            #self.main_layout.addWidget(self.scroll_area)
+            #self.setLayout(self.main_layout)
 
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-        wid = QWidget()
-        wid.setLayout(self.main_layout)
-        self.scroll_area.setWidget(wid)
-        lay = QVBoxLayout()
-        lay.addWidget(self.scroll_area)
-        self.setLayout(lay)
+            self.scroll_area = QScrollArea()
+            self.scroll_area.setWidgetResizable(True)
+            wid = QWidget()
+            wid.setLayout(self.main_layout)
+            self.scroll_area.setWidget(wid)
+            lay = QVBoxLayout()
+            lay.addWidget(self.scroll_area)
+            self.setLayout(lay)
+        except Exception as e:
+            sendMessage("Database GUI Setup", str(e), self)
 
     def addComboOptions(self, box):
-        self.search_dictionary = {}
-        #for search in database_headers: #only specific few
-        for search in DATABASE_HEADERS: #So can choose from all database headers
-            self.search_dictionary["Search by " + search.replace("_"," ")] = search.replace(" ","_") #used to be search.lower for the key
-            # self.search_by_box.addItem("Search by "+search.lower())
-        box.addItems(self.search_dictionary.keys())
+        try:
+            self.search_dictionary = {}
+            #for search in database_headers: #only specific few
+            for search in DATABASE_HEADERS: #So can choose from all database headers
+                self.search_dictionary["Search by " + search.replace("_"," ")] = search.replace(" ","_") #used to be search.lower for the key
+                # self.search_by_box.addItem("Search by "+search.lower())
+            box.addItems(self.search_dictionary.keys())
 
-        for i in range(box.count()):
-            if preferred_search.lower() in box.itemText(i).lower():
-                box.setCurrentText(box.itemText(i))
+            for i in range(box.count()):
+                if preferred_search.lower() in box.itemText(i).lower():
+                    box.setCurrentText(box.itemText(i))
+        except Exception as e:
+            sendMessage("Database Add Combo Options", str(e), self)
 
     def moveSearchLeft(self):
         try:
@@ -1235,7 +1293,7 @@ class Database(QWidget):
             # ADD ROWS INTO TABLE
             self.insertDatabaseGrid(self.searched_df)
         except Exception as e:
-            print(e)
+            sendMessage("Database Submit Search",str(e),self)
 
     def insertDatabaseGrid(self,df):
         try:
@@ -1301,7 +1359,7 @@ class Database(QWidget):
                         self.table_grid.itemAtPosition(i + 1, j).widget().setObjectName("special") #Create special category so not confined by height rules in CSS
                         self.table_grid.itemAtPosition(i + 1, j).widget().setSizePolicy(QSizePolicy.Preferred,QSizePolicy.Preferred)
         except Exception as e:
-            print(e,405)
+            sendMessage("Database Table Setup",str(e),self)
 
 
     def onSubmitSearchOLD(self):
@@ -1364,7 +1422,7 @@ class Database(QWidget):
 
             self.insertDatabaseGrid(self.organizeQuote(self.searched_df,text))
         except Exception as e:
-            print(e)
+            sendMessage("Database Headers Clicked",str(e),self)
 
     def organizeQuote(self,df,col):
         try:
@@ -1380,14 +1438,15 @@ class Database(QWidget):
 
             return self.searched_df
         except Exception as e:
-            print(e)
+            sendMessage("Database Organize Quote", str(e), self)
 
-    def editQuote(self):#TODO: Grab quote from databse when clicked so have most uptodate info
+    def editQuote(self):
         try:
             btn = self.sender()
             index = self.table_grid.indexOf(btn)
             row = self.table_grid.getItemPosition(index)[0] - 1
 
+            #IF same quote already in Active Quote Tab
             if main_window.tabs.widget(1).invoice_number.text() == str(self.searched_df["Quote_Number"].values[row]):
                 main_window.tabs.setCurrentIndex(1)  # switch to active quote tab
             elif main_window.tabs.widget(1).invoice_number.text() != "":
@@ -1401,21 +1460,22 @@ class Database(QWidget):
             else:
                 self.continueEditQuote(row)
         except Exception as e:
-            print(e)
+            sendMessage("Database Edit Quote",str(e),self)
 
     #Where the quote is put onto the GUI
     def continueEditQuote(self,row):
         try:
             df = self.searched_df
+            action = ""
             if df.iloc[row]["isEditing"]:
                 msg = QMessageBox()
                 msg.setWindowTitle("Quote Already Open")
-                msg.setText("Quote is already being edited by another user")
+                msg.setText("Quote is already being edited by another user.\nWould you like to edit anyway?")
                 msg.setIcon(QMessageBox.Critical)
-                msg.setStandardButtons(QMessageBox.Ok)
-                msg.exec()
+                msg.setStandardButtons(QMessageBox.Yes|QMessageBox.No)
+                action = msg.exec()
 
-            else:
+            if action != QMessageBox.No:
                 updateIsEditing(str(df.iloc[row]["Quote_Number"]),True)
 
                 #Clears anything in activequote tab
@@ -1424,6 +1484,11 @@ class Database(QWidget):
                 main_window.tabs.setCurrentIndex(1) #switch to active quote tab
 
                 quote = main_window.tabs.widget(1)
+
+                try:
+                    quote.last_time_edited = datetime.strptime(str(df.iloc[row]["Last_Edited"]),'%Y-%m-%d %H:%M:%S.%f')
+                except:
+                    pass
 
                 #INSERT EVERYTHING
 
@@ -1477,6 +1542,7 @@ class Database(QWidget):
                     except:
                         pass
 
+                quote.subject.setText(str(df.iloc[row]["Subject"]))
 
                 quote.invoice_number.setText(str(df["Quote_Number"].values[row]))
 
@@ -1504,47 +1570,60 @@ class Database(QWidget):
                         widget.setChecked(True)
 
         except Exception as e:
-            print(e)
+            sendMessage("Database Edit Quote 2",str(e),self)
+            updateIsEditing(str(df.iloc[row]["Quote_Number"]), False)
 
 
     def deleteQuote(self): #TODO: Delete from df and refresh so not show
-        btn = self.sender()
-        index = self.table_grid.indexOf(btn)
-        row = self.table_grid.getItemPosition(index)[0] - 1
+        try:
+            btn = self.sender()
+            index = self.table_grid.indexOf(btn)
+            row = self.table_grid.getItemPosition(index)[0] - 1
 
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setWindowTitle("Delete Quote")
-        msg.setText("Are you sure you want to delete the quote? This action is not undoable.")
-        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setWindowTitle("Delete Quote")
+            msg.setText("Are you sure you want to delete the quote? This action is not undoable.")
+            msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
 
-        action = msg.exec()
+            action = msg.exec()
 
-        if action == QMessageBox.Yes:
-            deleteQuote(str(self.searched_df["Quote_Number"].values[row]))
+            if action == QMessageBox.Yes:
+                deleteQuote(str(self.searched_df["Quote_Number"].values[row]))
+
+                #Resubmit search - so deletes out of table
+                self.onSubmitSearch()
+        except Exception as e:
+            sendMessage("Database Delete Quote", str(e), self)
 
 
 
     def newQuote(self):
-        if main_window.tabs.widget(1).invoice_number.text() != "":
-            action = self.sendQuoteInUseMsg()
+        try:
+            if main_window.tabs.widget(1).invoice_number.text() != "":
+                action = self.sendQuoteInUseMsg()
 
-            if action == QMessageBox.Yes:
-                main_window.tabs.widget(1).submitQuote()
+                if action == QMessageBox.Yes:
+                    main_window.tabs.widget(1).submitQuote()
+                    self.continueNewQuote()
+                if action == QMessageBox.No:
+                    self.continueNewQuote()
+            else:
                 self.continueNewQuote()
-            if action == QMessageBox.No:
-                self.continueNewQuote()
-        else:
-            self.continueNewQuote()
+        except Exception as e:
+            sendMessage("Database New Quote", str(e), self)
 
     def continueNewQuote(self):
-        #Clears activequote tab and inserts new
-        main_window.tabs.removeTab(1)
-        main_window.tabs.insertTab(1, ActiveQuote(), "Active Quote")
-        main_window.tabs.setCurrentIndex(1)  # switch to active quote tab
+        try:
+            #Clears activequote tab and inserts new
+            main_window.tabs.removeTab(1)
+            main_window.tabs.insertTab(1, ActiveQuote(), "Active Quote")
+            main_window.tabs.setCurrentIndex(1)  # switch to active quote tab
 
-        main_window.tabs.setCurrentIndex(1)
-        main_window.tabs.widget(1).invoice_number.setText(getNewInvoiceNumber())
+            main_window.tabs.setCurrentIndex(1)
+            main_window.tabs.widget(1).invoice_number.setText(getNewInvoiceNumber())
+        except Exception as e:
+            sendMessage("Database New Quote 2", str(e), self)
 
     def viewQuote(self):
         try:
@@ -1571,19 +1650,22 @@ class Database(QWidget):
             main_window.tabs.widget(2).addTabPage(html, quote_number)
 
         except Exception as e:
-            print(e,1187)
+            sendMessage("Database View Quote",str(e),self)
 
     def sendQuoteInUseMsg(self):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Warning)
-        msg.setWindowTitle("Quote Already Started")
-        msg.setText("There is a quote already started. Do you wish to save?")
-        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
-        # msg.buttonClicked.connect(self.continueEdit)
+        try:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Warning)
+            msg.setWindowTitle("Quote Already Started")
+            msg.setText("There is a quote already started. Do you wish to save?")
+            msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+            # msg.buttonClicked.connect(self.continueEdit)
 
-        action = msg.exec()
+            action = msg.exec()
 
-        return action
+            return action
+        except Exception as e:
+            sendMessage("Database Quote In Use Message", str(e), self)
 
 def refresh():
     global main_window
