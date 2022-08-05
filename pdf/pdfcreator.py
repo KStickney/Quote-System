@@ -1,15 +1,13 @@
 import pdfkit, os
 
-#just changed src to href for js files.
+# just changed src to href for js files.
 
-#path_wkhtmltopdf = "./bin/wkhtmltopdf.exe"
-path_wkhtmltopdf = os.path.join(os.path.dirname(os.path.realpath(__file__)),"bin/wkhtmltopdf.exe")
+# path_wkhtmltopdf = "./bin/wkhtmltopdf.exe"
+path_wkhtmltopdf = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)), "bin/wkhtmltopdf.exe"
+)
 config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
-config.default_options = {
-        'page_size': 'Letter',
-        'print_media_type': True,
-        'dpi': 96
-    }
+config.default_options = {"page_size": "Letter", "print_media_type": True, "dpi": 96}
 
 wire_transfer_info = """<tr>
             <td colspan="3" style="font-size:12px;font-family:Times">
@@ -38,12 +36,32 @@ wire_transfer_info = """<tr>
         </td>
     </tr>"""
 
-def getHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,line_totals_list,stocks_list,
-                sender,sender_email,quote_number,customer_email,subject,date,payment_method,delivery_method,
-                additional_notes_list,isWireTransfer = False,shipping_charges = "",customer_notes=""):
+
+def getHTMLText(
+    parts_list,
+    quantities_list,
+    conditions_list,
+    unit_totals_list,
+    line_totals_list,
+    stocks_list,
+    sender,
+    sender_email,
+    quote_number,
+    customer_email,
+    subject,
+    date,
+    payment_method,
+    delivery_method,
+    additional_notes_list,
+    isWireTransfer=False,
+    shipping_charges="",
+    customer_notes="",
+):
     try:
 
-        additional_notes = "" #TODO: see how get additional notes and change accordingly
+        additional_notes = (
+            ""  # TODO: see how get additional notes and change accordingly
+        )
         for note in additional_notes_list:
             if note == additional_notes_list[-1]:
                 additional_notes += note
@@ -60,7 +78,7 @@ def getHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,line
 
         subtotal = 0
         for dol in line_totals_list:
-            if dol != "None" and dol != '':
+            if dol != "None" and dol != "":
                 subtotal += float(dol)
 
         parts_table = ""
@@ -68,7 +86,7 @@ def getHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,line
             try:
                 parts_table += f"""<tr align = 'center'><td style='text-align: center;'>{i+1}</td><td style='text-align: center;'>{quantities_list[i]}</td><td style='text-align: left;'>{parts_list[i]}</td><td style='text-align: center;'>{conditions_list[i]}</td><td style = 'text-align: center;'>${"{:,.2f}".format(float(unit_totals_list[i]))}</td><td style='text-align: center;'>${"{:,.2f}".format(float(line_totals_list[i]))}</td><td style='text-align: center;'>{stocks_list[i]}</td></tr>"""
             except Exception as e:
-                print(e,"table"+str(i))
+                print(e, "table" + str(i))
 
         if isWireTransfer:
             wire_transfer = wire_transfer_info
@@ -93,17 +111,22 @@ def getHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,line
             shipping_html = ""
             total = subtotal
 
-        subtotal = round(subtotal,2)
+        subtotal = round(subtotal, 2)
         subtotal = "{:,.2f}".format(subtotal)
 
-        total = round(total,2)
+        total = round(total, 2)
         total = "{:,.2f}".format(total)
 
-        times_font_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"fonts/Times New Roman/times new roman.ttf")
-        gothic_font_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                 "fonts/century-gothic/CenturyGothic.ttf")
+        times_font_path = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            "fonts/Times New Roman/times new roman.ttf",
+        )
+        gothic_font_path = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            "fonts/century-gothic/CenturyGothic.ttf",
+        )
         dir_path = str(os.path.dirname(os.path.realpath(__file__)))
-        #Times
+        # Times
         html = f"""
         <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
         <html xmlns="http://www.w3.org/1999/xhtml">
@@ -336,11 +359,29 @@ def getHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,line
 
         return html
     except Exception as e:
-        print(e,"HTML")
+        print(e, "HTML")
 
-def getViewHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,line_totals_list,stocks_list,
-                sender,sender_email,quote_number,customer_email,subject,date,payment_method,delivery_method,
-                additional_notes_list,isWireTransfer=False,shipping_charges = "",customer_notes=""):
+
+def getViewHTMLText(
+    parts_list,
+    quantities_list,
+    conditions_list,
+    unit_totals_list,
+    line_totals_list,
+    stocks_list,
+    sender,
+    sender_email,
+    quote_number,
+    customer_email,
+    subject,
+    date,
+    payment_method,
+    delivery_method,
+    additional_notes_list,
+    isWireTransfer=False,
+    shipping_charges="",
+    customer_notes="",
+):
     try:
 
         additional_notes = ""
@@ -590,11 +631,10 @@ def getViewHTMLText(parts_list,quantities_list,conditions_list,unit_totals_list,
         print(e)
 
 
-def makeQuotePDF(html,title):
+def makeQuotePDF(html, title):
     try:
-        pdfkit.from_string(html, title+'.pdf', configuration=config)
-        #pdfkit.from_string(html, title + '.pdf')
+        pdfkit.from_string(html, title + ".pdf", configuration=config)
+        # pdfkit.from_string(html, title + '.pdf')
         pass
     except Exception as e:
         print(e)
-

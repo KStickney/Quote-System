@@ -28,16 +28,16 @@ def getRadwellPrice(part):  # TODO: Get how many in stock
     if status == 200:
         soup = BeautifulSoup(content, features="lxml")
 
-        prices = [None,None,None,None,None]
-        stocks = [None,None,None,None,None]
+        prices = [None, None, None, None, None]
+        stocks = [None, None, None, None, None]
 
         k = 0
 
         # In stock
-        for i in soup.find_all(class_='buyOpt active'):
+        for i in soup.find_all(class_="buyOpt active"):
             try:
 
-                text = i.find(class_='buyCond conditionPopupOpener').text
+                text = i.find(class_="buyCond conditionPopupOpener").text
                 found = False
                 if "Radwell Independent" in text:
                     index = 3
@@ -54,12 +54,12 @@ def getRadwellPrice(part):  # TODO: Get how many in stock
 
                 ##stocks.append([])
                 if found:
-                    #prices.append(i.find(class_="buyPriceInner").text[2:].replace(",", ""))
+                    # prices.append(i.find(class_="buyPriceInner").text[2:].replace(",", ""))
                     prices[index] = getPrice(i.find(class_="buyPriceInner").text)
 
                     try:
-                        stock = i.find(class_='stock instock').text
-                        #stock = stock[4:]
+                        stock = i.find(class_="stock instock").text
+                        # stock = stock[4:]
 
                         sum = ""
                         for let in stock:
@@ -74,17 +74,17 @@ def getRadwellPrice(part):  # TODO: Get how many in stock
                     except:
                         stocks[index] = 0
 
-                    k+=1
+                    k += 1
             except Exception as e:
-                print(e,k)
+                print(e, k)
                 ##k+=1
 
         # Not in stock
-        for i in soup.find_all(class_='buyOpt nostock active'):  # Means in stock
+        for i in soup.find_all(class_="buyOpt nostock active"):  # Means in stock
             try:
                 found = False
 
-                text = i.find(class_='buyCond conditionPopupOpener').text
+                text = i.find(class_="buyCond conditionPopupOpener").text
                 if "Radwell Independent" in text:
                     index = 3
                     found = True
@@ -102,18 +102,18 @@ def getRadwellPrice(part):  # TODO: Get how many in stock
                     found = True
                 ##stocks.append([])
                 if found:
-                    #prices.append(i.find(class_="buyPriceInner").text[2:].replace(",", ""))
+                    # prices.append(i.find(class_="buyPriceInner").text[2:].replace(",", ""))
                     prices[index] = getPrice(i.find(class_="buyPriceInner").text)
 
                     stocks[index] = 0
 
-                    k+=1
+                    k += 1
             except Exception as e:
                 ##k+=1
-                print(e,k)
+                print(e, k)
 
-        #Repair Price
-        for i in soup.find_all(class_='repPrice'):
+        # Repair Price
+        for i in soup.find_all(class_="repPrice"):
             prices[4] = getPrice(i.text)
             stocks[4] = 0
 
@@ -153,15 +153,17 @@ def getApexPLCPrice(part):
         types = [None, None, None, None, None]
 
         ##prices
-        for dev in soup.find_all('option'):
-            price = ''
+        for dev in soup.find_all("option"):
+            price = ""
             for i in dev.text[::-1]:
                 if i != " ":
                     price += i
                 else:
                     break
 
-            for type,index in zip(["New Opened Box", "New No Box", "New", "Refurbished"],[4,1,0,2]):
+            for type, index in zip(
+                ["New Opened Box", "New No Box", "New", "Refurbished"], [4, 1, 0, 2]
+            ):
                 if type in dev.text:
                     types[index] = type
                     prices[index] = price[::-1]
@@ -170,16 +172,21 @@ def getApexPLCPrice(part):
             # first one New, second Refurbished
             # or New, New Opened Box, New No Box, Refurbished
 
-
         ##Get stock
-        #for option in soup.find_all("option"):
-            #print(option["value"])
+        # for option in soup.find_all("option"):
+        # print(option["value"])
         ##THEN USE the options to get page variants. CAN'T USE REQUESTS - Gets same page source for each option. Have use Selenium to get current text
-        #url = "https://www.apexplc.com/products/ms-fec2611-0?variant=1434349240341"
+        # url = "https://www.apexplc.com/products/ms-fec2611-0?variant=1434349240341"
 
         options = webdriver.ChromeOptions()
-        options.add_argument('--headless')
-        options.add_argument(str(os.path.join(os.path.dirname(os.path.realpath(__file__)), "chromedriver.exe")))
+        options.add_argument("--headless")
+        options.add_argument(
+            str(
+                os.path.join(
+                    os.path.dirname(os.path.realpath(__file__)), "chromedriver.exe"
+                )
+            )
+        )
 
         driver = webdriver.Chrome(options=options)
         driver.get(url)
@@ -191,9 +198,9 @@ def getApexPLCPrice(part):
                 select.select_by_visible_text(types[i])
                 element = driver.find_element_by_id("variant-inventory")
                 # element = driver.find_element_by_css_selector("h3")
-                text = element.get_attribute('innerHTML')
+                text = element.get_attribute("innerHTML")
 
-                if "We have" in text: #If in stock, comment starts with "We have"
+                if "We have" in text:  # If in stock, comment starts with "We have"
                     text = text[4:]
 
                     t = ""
@@ -206,11 +213,14 @@ def getApexPLCPrice(part):
                                 t = ""
                         else:
                             t += let
-                elif "Please call" in text: #If not in stock, comment starts with "Please call"
+                elif (
+                    "Please call" in text
+                ):  # If not in stock, comment starts with "Please call"
                     stocks[i] = 0
         driver.close()
 
         return prices, stocks, types
+
 
 def getIndustrialAutomationsPrice(part):
     line = getLine(part)
@@ -225,26 +235,35 @@ def getIndustrialAutomationsPrice(part):
         ##prices
         prices = []
         types = []
-        for dev in soup.find_all('option'):
+        for dev in soup.find_all("option"):
             pass
 
         options = webdriver.ChromeOptions()
-        options.add_argument('--headless')
-        options.add_argument(str(os.path.join(os.path.dirname(os.path.realpath(__file__)), "chromedriver.exe")))
+        options.add_argument("--headless")
+        options.add_argument(
+            str(
+                os.path.join(
+                    os.path.dirname(os.path.realpath(__file__)), "chromedriver.exe"
+                )
+            )
+        )
 
         driver = webdriver.Chrome(options=options)
         driver.get(url)
 
-        select = Select(driver.find_element_by_id("SingleOptionSelector-0")) # I believe this is the correct id selector
+        select = Select(
+            driver.find_element_by_id("SingleOptionSelector-0")
+        )  # I believe this is the correct id selector
         select.select_by_visible_text("New Surplus")
         select.select_by_visible_text("Refurbished")
         element = driver.find_element_by_class_name("price__regular")
-        text = element.get_attribute('innerHTML')
+        text = element.get_attribute("innerHTML")
         print(getPrice(text))
 
 
 # def getPLCUnlimitedPrice(part):
 # url = f""
+
 
 def checkRequestStatus(url):
     resp = requests.get(url)
@@ -256,14 +275,15 @@ def checkRequestStatus(url):
     else:
         return status, resp.text
 
+
 def getLine(part):
     ind = part[0].lower()
 
-    if ind in ["c","r"]:
+    if ind in ["c", "r"]:
         line = "Omron"
-    elif ind in ["f","a","q","h"]:
+    elif ind in ["f", "a", "q", "h"]:
         line = "Mitsubishi"
-    elif ind in ["n","a"]:
+    elif ind in ["n", "a"]:
         line = "johnson-controls"
     elif ind == "m":
         if part[0:2].lower() == "ms":
@@ -277,8 +297,9 @@ def getLine(part):
         line = "Allen-Bradley"
     except:
         pass
-    #TODO: SICK, Johnson controls has m and n parts
+    # TODO: SICK, Johnson controls has m and n parts
     return line
+
 
 def getPrice(string):
     price = ""
@@ -288,11 +309,12 @@ def getPrice(string):
         except:
             pass
 
-    #insert decimal
+    # insert decimal
     price = price[:-2] + "." + price[-2:]
 
     return "{:,.2f}".format(float(price))
 
-#print(getIndustrialAutomationsPrice("2094-BC02-M02-M"))
-#print(getRadwellPrice("ms-fec2611-0"))
+
+# print(getIndustrialAutomationsPrice("2094-BC02-M02-M"))
+# print(getRadwellPrice("ms-fec2611-0"))
 print(getApexPLCPrice("ms-fec2611-0"))
