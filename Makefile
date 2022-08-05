@@ -1,16 +1,16 @@
 # Makefile
 PYTHON_EXE = python3
 # PROJECT_NAME is used to create the virtualenv name
-PROJECT_NAME=Quote-System
+PROJECT_NAME=quote
 LAMBDA_GITAUTH_FUNCTION_NAME="cidrbot-gitauth"
 LAMBDA_CIDRBOT_FUNCTION_NAME="cidrbot"
 TOPDIR = $(shell git rev-parse --show-toplevel)
 # PYDIRS is where we look for python code that needs to be linted
 # For GitAuth function, PYDIRS=git_cidrbot
 # For CIDRBOT function, PYDIRS=wxt_cidrbot
-PYDIRS_WXT=wxt_cidrbot
-PYDIRS_GH=git_cidrbot
-PYDIRS=$(PYDIRS_WXT) $(PYDIRS_GH)
+PYDIRS_PDF=pdf
+PYDIRS_WEB=web_scraping
+PYDIRS=$(PYDIRS_PDF) $(PYDIRS_WEB)
 VENV = venv_$(PROJECT_NAME)
 VENV_BIN=$(VENV)/bin
 SRC_FILES := $(shell find $(PYDIRS) -name \*.py)
@@ -45,7 +45,7 @@ dev: deps ## Installs python_viptela in develop mode.
 check-format: $(VENV)/bin/activate ## Check code format
 	@( \
 	set -eu pipefail ; set -x ;\
-	DIFF=`$(VENV)/bin/yapf --style=yapf.ini -d -r *.py $(PYDIRS)` ;\
+	DIFF=`$(VENV)/bin/black *.py $(PYDIRS)` ;\
 	if [ -n "$$DIFF" ] ;\
 	then \
 	echo -e "\nFormatting changes requested:\n" ;\
@@ -56,7 +56,7 @@ check-format: $(VENV)/bin/activate ## Check code format
 	)
 
 format: $(VENV_BIN)/activate ## Format code
-	$(VENV_BIN)/yapf --style=yapf.ini -i -r *.py $(PYDIRS)
+	$(VENV_BIN)/black *.py $(PYDIRS)
 
 pylint: $(VENV_BIN)/activate ## Run pylint
 	$(VENV_BIN)/pylint --output-format=parseable --rcfile .pylintrc *.py $(PYDIRS)

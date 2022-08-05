@@ -9,12 +9,12 @@ includes = [
 
 setup(
     name="Quote-System",
-    version='1.0.0',
+    version="1.0.0",
     packages=find_namespace_packages(include=includes),
     description="Myproject",
     install_requires=[],
-    entry_points='''
+    entry_points="""
         [console_scripts]
         Quote-System-cli=Quote_System.cli:cli
-    ''',
+    """,
 )

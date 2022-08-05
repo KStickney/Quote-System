@@ -27,8 +27,10 @@ def getRadwellPrice(part):
     types = []
     stocks = []
 
-    if status != 200: #If not find website with dashes, try without dashes
-        url = url = f"https://www.radwell.com/en-US/Buy/{line}/{line}/{part.replace('-','')}/"
+    if status != 200:  # If not find website with dashes, try without dashes
+        url = (
+            url
+        ) = f"https://www.radwell.com/en-US/Buy/{line}/{line}/{part.replace('-','')}/"
         status, content = checkRequestStatus(url)
 
     if status == 200:
@@ -37,10 +39,10 @@ def getRadwellPrice(part):
         k = 0
 
         # In stock
-        for i in soup.find_all(class_='buyOpt active'):
+        for i in soup.find_all(class_="buyOpt active"):
             try:
 
-                text = i.find(class_='buyCond conditionPopupOpener').text
+                text = i.find(class_="buyCond conditionPopupOpener").text
                 found = False
                 if "Radwell Independent" in text:
                     types.append("Abs. New")
@@ -57,15 +59,15 @@ def getRadwellPrice(part):
 
                 ##stocks.append([])
                 if found:
-                    #prices.append(i.find(class_="buyPriceInner").text[2:].replace(",", ""))
+                    # prices.append(i.find(class_="buyPriceInner").text[2:].replace(",", ""))
                     prices.append(getPrice(i.find(class_="buyPriceInner").text))
 
                     stocks.append([])
                     stocks[k].append("In Stock")
 
                     try:
-                        stock = i.find(class_='stock instock').text
-                        #stock = stock[4:]
+                        stock = i.find(class_="stock instock").text
+                        # stock = stock[4:]
 
                         sum = ""
                         for let in stock:
@@ -80,17 +82,17 @@ def getRadwellPrice(part):
                     except:
                         stocks[k].append(1)
 
-                    k+=1
+                    k += 1
             except Exception as e:
-                print(e,k)
+                print(e, k)
                 ##k+=1
 
         # Not in stock
-        for i in soup.find_all(class_='buyOpt nostock active'):  # Means in stock
+        for i in soup.find_all(class_="buyOpt nostock active"):  # Means in stock
             try:
                 found = False
 
-                text = i.find(class_='buyCond conditionPopupOpener').text
+                text = i.find(class_="buyCond conditionPopupOpener").text
                 if "Radwell Independent" in text:
                     types.append("Abs. New")
                     found = True
@@ -108,20 +110,20 @@ def getRadwellPrice(part):
                     found = True
                 ##stocks.append([])
                 if found:
-                    #prices.append(i.find(class_="buyPriceInner").text[2:].replace(",", ""))
+                    # prices.append(i.find(class_="buyPriceInner").text[2:].replace(",", ""))
                     prices.append(getPrice(i.find(class_="buyPriceInner").text))
 
                     stocks.append([])
                     stocks[k].append("Out Of Stock")
                     stocks[k].append(0)
 
-                    k+=1
+                    k += 1
             except Exception as e:
                 ##k+=1
-                print(e,k)
+                print(e, k)
 
-        #Repair Price
-        for i in soup.find_all(class_='repPrice'):
+        # Repair Price
+        for i in soup.find_all(class_="repPrice"):
             prices.append(getPrice(i.text))
             types.append("Repair")
             stocks.append([])
@@ -151,7 +153,7 @@ def getRadwellPrice(part):
 
 
 ##APEXPLC
-def getApexPLCPrice(part,driver):
+def getApexPLCPrice(part, driver):
     url = f"https://www.apexplc.com/products/{part}"
 
     status, content = checkRequestStatus(url)
@@ -164,8 +166,8 @@ def getApexPLCPrice(part,driver):
         soup = BeautifulSoup(content, features="lxml")
 
         ##prices
-        for dev in soup.find_all('option'):
-            price = ''
+        for dev in soup.find_all("option"):
+            price = ""
             for i in dev.text[::-1]:
                 if i != " ":
                     price += i
@@ -182,18 +184,17 @@ def getApexPLCPrice(part,driver):
             # first one New, second Refurbished
             # or New, New Opened Box, New No Box, Refurbished
 
-
         ##Get stock
-        #for option in soup.find_all("option"):
-            #print(option["value"])
+        # for option in soup.find_all("option"):
+        # print(option["value"])
         ##THEN USE the options to get page variants. CAN'T USE REQUESTS - Gets same page source for each option. Have use Selenium to get current text
-        #url = "https://www.apexplc.com/products/ms-fec2611-0?variant=1434349240341"
+        # url = "https://www.apexplc.com/products/ms-fec2611-0?variant=1434349240341"
 
-        #options = webdriver.ChromeOptions()
-        #options.add_argument('--headless')
-        #options.add_argument(str(os.path.join(os.path.dirname(os.path.realpath(__file__)), "chromedriver.exe")))
+        # options = webdriver.ChromeOptions()
+        # options.add_argument('--headless')
+        # options.add_argument(str(os.path.join(os.path.dirname(os.path.realpath(__file__)), "chromedriver.exe")))
 
-        #driver = webdriver.Chrome(options=options,executable_path=str(os.path.join(os.path.dirname(os.path.realpath(__file__)), "chromedriver.exe")))
+        # driver = webdriver.Chrome(options=options,executable_path=str(os.path.join(os.path.dirname(os.path.realpath(__file__)), "chromedriver.exe")))
         driver.get(url)
 
         select = Select(driver.find_element_by_id("product-variants-option-0"))
@@ -203,10 +204,10 @@ def getApexPLCPrice(part,driver):
                 select.select_by_visible_text(types[i])
                 element = driver.find_element_by_id("variant-inventory")
                 # element = driver.find_element_by_css_selector("h3")
-                text = element.get_attribute('innerHTML')
+                text = element.get_attribute("innerHTML")
 
                 stocks.append([])
-                if "We have" in text: #If in stock, comment starts with "We have"
+                if "We have" in text:  # If in stock, comment starts with "We have"
                     stocks[i].append("In Stock")
                     text = text[4:]
 
@@ -220,16 +221,19 @@ def getApexPLCPrice(part,driver):
                                 t = ""
                         else:
                             t += let
-                elif "Please call" in text: #If not in stock, comment starts with "Please call"
+                elif (
+                    "Please call" in text
+                ):  # If not in stock, comment starts with "Please call"
                     stocks[i].append("Out of Stock")
                     stocks[i].append(0)
             except Exception as e:
                 print(e)
-        #driver.close()
+        # driver.close()
 
-    return types,prices, stocks
+    return types, prices, stocks
 
-def getIndustrialAutomationsPrice(part,driver):
+
+def getIndustrialAutomationsPrice(part, driver):
     line = getLine(part)
 
     url = f"https://industrialautomationco.com/collections/{line}/products/{part}"
@@ -243,34 +247,35 @@ def getIndustrialAutomationsPrice(part,driver):
     if status == 200:
         soup = BeautifulSoup(content, features="lxml")
 
-        #Prices
-        for dev in soup.find_all('option'):
+        # Prices
+        for dev in soup.find_all("option"):
             pass
 
-        #options = webdriver.ChromeOptions()
-        #options.add_argument('--headless')
-        #options.add_argument(str(os.path.join(os.path.dirname(os.path.realpath(__file__)), "chromedriver.exe")))
+        # options = webdriver.ChromeOptions()
+        # options.add_argument('--headless')
+        # options.add_argument(str(os.path.join(os.path.dirname(os.path.realpath(__file__)), "chromedriver.exe")))
 
-        #driver = webdriver.Chrome(options=options,executable_path=str(os.path.join(os.path.dirname(os.path.realpath(__file__)), "chromedriver.exe")))
+        # driver = webdriver.Chrome(options=options,executable_path=str(os.path.join(os.path.dirname(os.path.realpath(__file__)), "chromedriver.exe")))
         driver.get(url)
 
-        #Get all types - refurbished, New no Box, New, etc.
+        # Get all types - refurbished, New no Box, New, etc.
         select_box = driver.find_element_by_id("SingleOptionSelector-0")
         options_html = [x for x in select_box.find_elements_by_tag_name("option")]
         options = []
         for el in options_html:
             options.append(el.get_attribute("value"))
 
-
-        #Gets prices
-        select = Select(driver.find_element_by_id("SingleOptionSelector-0")) # I believe this is the correct id selector
-        #select.select_by_visible_text("New Surplus") #Have to select another label first in order for first price to show up
+        # Gets prices
+        select = Select(
+            driver.find_element_by_id("SingleOptionSelector-0")
+        )  # I believe this is the correct id selector
+        # select.select_by_visible_text("New Surplus") #Have to select another label first in order for first price to show up
         select.select_by_index(0)
         for el in options:
             select.select_by_visible_text(el)
 
             element = driver.find_element_by_class_name("price__regular")
-            text = element.get_attribute('innerHTML')
+            text = element.get_attribute("innerHTML")
             price = getPrice(text)
 
             prices.append(price)
@@ -278,40 +283,42 @@ def getIndustrialAutomationsPrice(part,driver):
             ##FOR NOW, until know how get stocks #TODO: Figure out how get Stocks
             stocks.append(1)
 
-        #Possible way get stocks
+        # Possible way get stocks
         select_box2 = driver.find_element_by_id("ProductSelect-product-template")
         options_html2 = [x for x in select_box2.find_elements_by_tag_name("option")]
         for e in options_html2:
             print(e.get_attribute("value"))
-        #driver.close()
+        # driver.close()
 
-    return types,prices,stocks
+    return types, prices, stocks
 
 
 # def getPLCUnlimitedPrice(part):
 # url = f""
+
 
 def checkRequestStatus(url):
     resp = requests.get(url)
     status = resp.status_code
     text = resp.text
 
-    #resp.close()
+    # resp.close()
 
     if status == 404:
         print("Website could not be found")
         return status, ""
     else:
-        return status, text#resp.text
+        return status, text  # resp.text
+
 
 def getLine(part):
     ind = part[0].lower()
 
-    if ind in ["c","r"]:
+    if ind in ["c", "r"]:
         line = "Omron"
-    elif ind in ["f","a","q","h"]:
+    elif ind in ["f", "a", "q", "h"]:
         line = "Mitsubishi"
-    elif ind in ["n","a"]:
+    elif ind in ["n", "a"]:
         line = "johnson-controls"
     elif ind == "m":
         if part[0:2].lower() == "ms":
@@ -325,8 +332,9 @@ def getLine(part):
         line = "Allen-Bradley"
     except:
         pass
-    #TODO: SICK, Johnson controls has m and n parts
+    # TODO: SICK, Johnson controls has m and n parts
     return line
+
 
 def getPrice(string):
     price = ""
@@ -336,17 +344,30 @@ def getPrice(string):
         except:
             pass
 
-    #insert decimal
+    # insert decimal
     price = price[:-2] + "." + price[-2:]
 
-    return "{:,.2f}".format(float(price.replace(",","")))
+    return "{:,.2f}".format(float(price.replace(",", "")))
+
 
 def getDriver():
     options = webdriver.ChromeOptions()
-    options.add_argument('--headless')
-    options.add_argument(str(os.path.join(os.path.dirname(os.path.realpath(__file__)), "chromedriver.exe")))
+    options.add_argument("--headless")
+    options.add_argument(
+        str(
+            os.path.join(
+                os.path.dirname(os.path.realpath(__file__)), "chromedriver.exe"
+            )
+        )
+    )
 
-    driver = webdriver.Chrome(options=options, executable_path=str(
-        os.path.join(os.path.dirname(os.path.realpath(__file__)), "chromedriver.exe")))
+    driver = webdriver.Chrome(
+        options=options,
+        executable_path=str(
+            os.path.join(
+                os.path.dirname(os.path.realpath(__file__)), "chromedriver.exe"
+            )
+        ),
+    )
 
     return driver
