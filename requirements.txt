@@ -1,0 +1,8 @@
+requests
+pandas
+PyQt5
+selenium
+bs4
+pyodbc
+pdfkit
+PyQtWebEngine

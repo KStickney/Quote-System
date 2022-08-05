@@ -4377,3 +4377,8 @@ DEBUG:selenium.webdriver.remote.remote_connection:Finished Request
 DEBUG:selenium.webdriver.remote.remote_connection:DELETE http://127.0.0.1:63582/session/acc98b5af9891250880f171338514186/window {}
 DEBUG:urllib3.connectionpool:http://127.0.0.1:63582 "DELETE /session/acc98b5af9891250880f171338514186/window HTTP/1.1" 200 55
 DEBUG:selenium.webdriver.remote.remote_connection:Finished Request
+ERROR:root:[Errno 2] No such file or directory: 'Z:/NEW Quote Database/shared_settings.pickle'
+Traceback (most recent call last):
+  File "C:/Users/miles/Documents/AI Programming/A-Z AI/Self_Driving_Car_Updated/Quote-System/Quote_System.py", line 3348, in <module>
+    with open(shared_settings_file, 'rb') as handle:
+FileNotFoundError: [Errno 2] No such file or directory: 'Z:/NEW Quote Database/shared_settings.pickle'
