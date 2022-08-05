@@ -90,8 +90,10 @@ def getHTMLText(
 
         if isWireTransfer:
             wire_transfer = wire_transfer_info
+            quote_type = "Pro Forma Invoice"
         else:
             wire_transfer = ""
+            quote_type = "Quotation"
 
         current_directory = os.path.dirname(os.path.realpath(__file__))
 
@@ -257,7 +259,7 @@ def getHTMLText(
                                                 </a><a href="http://www.trwsupply.com">www.trwsupply.com</a><br />
                                             </p></td>
                                         <td valign="bottom"><strong  style="font-size: 20px; text-transform: uppercase;">
-                                                Quotation # <span style="text-decoration: underline;">{quote_number}</span> </strong></td>
+                                                {quote_type} # <span style="text-decoration: underline;">{quote_number}</span> </strong></td>
                                     </tr>
                                 </table>
                             </td>

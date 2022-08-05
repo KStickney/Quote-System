@@ -380,6 +380,7 @@ class ActiveQuote(QWidget):
 
             self.wire_transfer = QCheckBox("Pro Forma Invoice")
             # self.wire_transfer.setObjectName("wire") #For before put into note_group
+            self.wire_transfer.clicked.connect(lambda state: self.wire_transfer_clicked(state))
 
             lay1 = QHBoxLayout()
             lay1.addWidget(p)
@@ -1112,6 +1113,14 @@ class ActiveQuote(QWidget):
 
         except Exception as e:
             print(e)
+
+    def wire_transfer_clicked(self, state):
+        subject = self.subject.text()
+        if state and subject[:3] == "RFQ":
+            subject = "PI" + subject[3:]
+        elif not state and subject[:2] == "PI":
+            subject = "RFQ" + subject[2:]
+        self.subject.setText(subject)
 
     def toggleNoteCol(self):
         j = self.table.columnCount() - 2
