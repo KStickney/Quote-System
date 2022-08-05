@@ -1,0 +1,167 @@
+QLineEdit#table{
+    font: 14px;
+    max-height: 30px;
+    min-height: 30px;
+    border-radius: 0px;
+}
+QLineEdit#total{
+    font: 14px;
+    max-height: 30px;
+    min-height: 30px;
+    max-width: 200px;
+    border-radius: 5px;
+}
+QLabel#total{
+    max-width: 51.7em;
+}
+QLineEdit#table-parts{
+    font: 14px;
+    max-height: 30px;
+    min-height: 30px;
+    border-radius: 0px;
+}
+QComboBox#table{
+    font: 14px;
+    max-height: 30px;
+    min-height: 30px;
+    max-width: 200px;
+    border-radius: 0px;
+}
+QDoubleSpinBox#table{
+    font: 14px;
+    max-height: 30px;
+    min-height:30px;
+    max-width: 200px;
+    border-radius: 0px;
+}
+QLineEdit#table-header{
+    font: bold 16px;
+    max-height: 30px;
+    min-height: 30px;
+    border-radius: 0px;
+}
+QLineEdit#header-combo{
+    font: bold 16px;
+    max-height: 30px;
+    min-height: 30px;
+    max-width: 200px;
+    border-radius: 0px;
+}
+QLineEdit#customer{
+    font: 15px;
+    mso-line-spacing: 4;
+    min-height: 40px;
+    max-height: 40px;
+    min-width: 450px;
+    max-width: 450px;
+}
+QLineEdit#invoice{
+    font: 15px;
+    mso-line-spacing: 4;
+    min-height: 40px;
+    max-height: 40px;
+    min-width: 150px;
+    max-width: 150px;
+}
+QLineEdit#subject{
+    font: 15px;
+    mso-line-spacing: 4;
+    min-height: 40px;
+    max-height: 40px;
+    min-width: 250px;
+    max-width: 250px;
+}
+QLineEdit#shipping{
+    font: 14px;
+    min-height: 35px;
+    max-height: 35px;
+    min-width: 200px;
+    max-width: 200px;
+}
+
+QLabel#invoice{
+    alignment: right;
+    min-height: 40px;
+    max-height: 40px;
+}
+QLabel#customer{
+    alignment: right;
+    min-height: 40px;
+    max-height: 40px;
+    max-width:140px;
+}
+QLabel#shipping{
+    min-height: 40px;
+    max-height: 40px;
+    max-width:140px;
+}
+
+QTextEdit#customer{
+    max-height: 150px;
+    max-width: 600px;
+    min-height: 150px;
+    min-width: 600px;
+}
+
+QComboBox{
+    min-height:40px;
+    max-width: 170px;
+}
+
+QPushButton#submit{
+    max-height: 30px;
+    min-height: 30px;
+    max-width: 200px;
+    border-radius: 15px;
+    font: bold 15px;
+}
+QPushButton#add-item{
+    max-height: 20px;
+    max-width: 100px;
+    border-radius: 5px;
+    font: bold 15px;
+    align-items: center;
+}
+
+QTextEdit{
+    font: 15px;
+    max-height: 150px;
+}
+QTextEdit#info{
+    font: 15px;
+    max-height: 150px;
+    min-height: 150px;
+}
+
+QLabel{
+    max-height: 30px;
+    font: bold 14px;
+}
+
+QCheckBox{
+    font: 15px;
+}
+QCheckBox#wire{
+    font: 15px;
+    max-width: 150px;
+}
+
+QComboBox:on {
+    padding-top: 3px;
+    padding-left: 4px;
+}
+
+QComboBox::drop-down
+{
+     subcontrol-origin: padding;
+     subcontrol-position: top right;
+     width: 15px;
+
+     border-left-width: 0px;
+     border-left-style: solid; /* just a single line */
+     border-top-right-radius: 3px; /* same radius as the QComboBox */
+     border-bottom-right-radius: 3px;
+ }
+
+
+

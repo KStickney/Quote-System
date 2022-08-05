@@ -1,0 +1,10 @@
+QLineEdit{
+    font: bold 14px;
+    align-content: center;
+    min-height: 25px;
+    border-radius: 2px;
+}
+QLineEdit#header{
+    font: bold 15px;
+    min-height: 25px;
+}

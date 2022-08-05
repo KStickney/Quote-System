@@ -1,0 +1,52 @@
+
+QLineEdit{
+    max-height:35px;
+    font: 14px;
+}
+QGroupBox{
+    max-height: 200px;
+}
+QPushButton#submit{
+    font: bold 14px;
+    max-width: 300px;
+    max-height: 35px;
+    border-radius: 10px;
+}
+QPushButton#database-edit{
+    font: bold 12px;
+    max-width: 300px;
+    max-height: 35px;
+    border-radius: 10px;
+}
+
+QComboBox#database-header{
+    min-height:30px;
+    max-height:30px;
+    font: 13px;
+}
+
+QLineEdit#with-list{
+    max-width: 400px;
+    min-height: 30px;
+    font: 14px;
+}
+QPushButton#with-list{
+    min-width: 150px;
+    max-width: 150px;
+    min-height: 30px;
+    max-height:30px;
+}
+QComboBox#search{
+    min-height: 30px;
+    max-height: 30px;
+    max-width: 300px;
+    font: 13px
+}
+
+QGroupBox{
+    font: 14px;
+}
+
+QToolBox::tab{
+    font: 13px;
+}

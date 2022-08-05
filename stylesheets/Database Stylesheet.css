@@ -1,0 +1,85 @@
+:root{
+    link rel: ./main.py
+}
+
+QPushButton#search{
+    max-height: 27px;
+    max-width: 200px;
+    border-radius: 15px;
+    font: bold 15px;
+    qproperty-iconSize: 30px;
+}
+QComboBox{
+    max-height:30px;
+    max-width: 170px;
+}
+QComboBox#listings{
+    max-width: 50px;
+}
+QLineEdit#search{
+    font: 14px;
+    max-height: 30px;
+    min-height: 30px;
+    max-width: 200px;
+    border-radius: 5px;
+}
+QLineEdit#database-header{
+    font: bold 14px;
+    max-height: 25px;
+    min-height: 25px;
+}
+QLineEdit#database{
+    font: bold 14px;
+    max-height: 25px;
+    min-height: 25px;
+}
+QLineEdit#database-click{
+    font: bold 14px;
+    max-height: 25px;
+    min-height: 25px;
+}
+
+ClickableLineEdit::hover{
+    color: blue;
+}
+ClickableLabel::hover{
+    color: blue;
+}
+
+
+
+QLineEdit#database-click::hover{
+    color: blue;
+}
+ClickableLineEdit#database-click{
+    font: bold 14px;
+    max-height: 25px;
+    min-height: 25px;
+}
+ClickableLineEdit#database-click::hover{
+    color: blue;
+}
+ClickableLabel{
+    font: bold 14px;
+}
+QLineEdit#special::hover{
+    /*color: blue;*/
+}
+QLabel#database{
+    font: bold 14px;
+}
+QLineEdit#special{
+    font: bold 14px;
+}
+QLabel#special{
+    font: bold 14px;
+}
+
+QLabel#database{
+    font: bold 14px;
+    /*background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #4d4d4d, stop: 0 #646464, stop: 1 #5d5d5d);*/
+    /*padding: 1px;*/
+    /*border-style: solid;*/
+    /*border: 1px solid #1e1e1e;*/
+    border-radius: 5;
+}

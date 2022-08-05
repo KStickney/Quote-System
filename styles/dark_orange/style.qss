@@ -1,3 +1,4 @@
+/*Dark Orange StyleSheet*/
 QToolTip
 {
      border: 1px solid black;
@@ -95,6 +96,17 @@ QLineEdit
     border-style: solid;
     border: 1px solid #1e1e1e;
     border-radius: 5;
+}
+
+QLabel#database{
+    background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #4d4d4d, stop: 0 #646464, stop: 1 #5d5d5d);
+    border-style: solid;
+    border: 1px solid #1e1e1e;
+}
+ClickableLabel{
+    background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #4d4d4d, stop: 0 #646464, stop: 1 #5d5d5d);
+    border-style: solid;
+    border: 1px solid #1e1e1e;
 }
 
 QPushButton
