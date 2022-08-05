@@ -3807,7 +3807,7 @@ if __name__ == "__main__":
 
     # Make list for any errors done before GUI setup, so later can send message to user
     ERRORS_LIST = []
-    log.basicConfig(filename="app.log", filemode="a", level=log.DEBUG)
+    log.basicConfig(filename="app.log", filemode="w", level=log.DEBUG)
 
     try:
         # Load local settings
