@@ -1,4 +1,5 @@
 import pdfkit, os
+from jinja2 import Template
 
 # just changed src to href for js files.
 
@@ -18,8 +19,8 @@ wire_transfer_info = """<tr>
         <td height="45" colspan="2" valign="top" style="font-size: 100%;"><table width="100%" border="0">
                 <tr>
                     <th scope="col"> <div align="center" style="border-right: 2px solid #000;">TRW ELECTRIC & SUPPLY COMPANY LLC<br />
-                            1106 Great Falls Ct. Unit A<br />
-                            Knightdale, NC 27545 USA<br />
+                            6305 Lake Wheeler Road<br />
+                            Raleigh, NC 27603 USA<br />
                             Tel: 1-800-479-8084<br />
                             <span style="font-weight: bolder;">ATTN: PI 83121-81111</span>
                         </div></th>
@@ -129,6 +130,36 @@ def getHTMLText(
         )
         dir_path = str(os.path.dirname(os.path.realpath(__file__)))
         # Times
+
+        # template_path = os.path.join(
+        #     os.path.dirname(os.path.realpath(__file__)),
+        #     "quote-template.html.j2",
+        # )
+        #
+        # with open(template_path, encoding='utf8') as file_:
+        #     template = Template(file_.read())
+        # html = template.render({
+        #     'times_font_path': times_font_path,
+        #     'gothic_font_path': gothic_font_path,
+        #     'dir_path': dir_path,
+        #     'sender': sender,
+        #     'sender_email': sender_email,
+        #     'quote_type': quote_type,
+        #     'quote_number': quote_number,
+        #     'customer_email': customer_email,
+        #     'subject': subject,
+        #     'customer_notes': customer_notes,
+        #     'date': date,
+        #     'payment_method': payment_method,
+        #     'delivery_method': delivery_method,
+        #     'parts_table': parts_table,
+        #     'subtotal': subtotal,
+        #     'shipping_html': shipping_html,
+        #     'total': total,
+        #     'additional_notes': additional_notes,
+        #     'wire_transfer': wire_transfer
+        # })
+
         html = f"""
         <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
         <html xmlns="http://www.w3.org/1999/xhtml">
@@ -251,8 +282,8 @@ def getHTMLText(
                                 <table cellspacing="0" cellpadding="2" width="100%" summary="Details" style="border:0">
                                     <tr>
                                         <td valign="bottom" align="left" style="font-size:12px;font-family:Times">
-                                            <p>                                        1106 Great Falls Ct. Unit A<br />
-                                                Knightdale, NC 27545 USA<br />
+                                            <p>                                        6305 Lake Wheeler Road<br />
+                                                Raleigh, NC 27603 USA<br />
                                                 Tel: 1-800-479-8084<br />
                                                 {sender}<br />
                                                 Email: <a href="mailto:{sender_email}" style="border:0">{sender_email}<br /> <!-- CHANGE!! -->
@@ -521,8 +552,8 @@ def getViewHTMLText(
                                 <table cellspacing="0" cellpadding="2" width="100%" summary="Details" style="border:0">
                                     <tr>
                                         <td valign="bottom" align="left" style="font-size:12px;font-family:Times">
-                                            <p>                                        1106 Great Falls Ct. Unit A<br />
-                                                Knightdale, NC 27545 USA<br />
+                                            <p>                                        6305 Lake Wheeler Road<br />
+                                                Raleigh, NC 27603 USA<br />
                                                 Tel: 1-800-479-8084<br />
                                                 {sender}<br />
                                                 Email: <a href="mailto:{sender_email}" style="border:0">{sender_email}<br /> <!-- CHANGE!! -->

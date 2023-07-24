@@ -6,3 +6,4 @@ bs4
 pyodbc
 pdfkit
 PyQtWebEngine
+jinja2
